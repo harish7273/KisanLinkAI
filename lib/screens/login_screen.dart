@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../constants/colors.dart';
+import '../services/auth_service.dart';
+import 'otp_screen.dart';
+import 'farmer_register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,7 +14,71 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController mobileController = TextEditingController();
+  final TextEditingController mobileController =
+      TextEditingController();
+
+  final AuthService _authService = AuthService();
+
+  bool isLoading = false;
+
+  Future<void> login() async {
+    if (mobileController.text.trim().length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter a valid mobile number"),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    await _authService.sendOTP(
+      phoneNumber: mobileController.text.trim(),
+
+      codeSent: (verificationId) {
+        setState(() {
+          isLoading = false;
+        });
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtpScreen(
+              verificationId: verificationId,
+              name: "",
+              phone: mobileController.text.trim(),
+              email: "",
+              gender: "",
+              dob: "",
+              farmName: "",
+              state: "",
+              district: "",
+              village: "",
+              crop: "",
+              farmSize: "",
+            ),
+          ),
+        );
+      },
+
+      onError: (e) {
+        setState(() {
+          isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.message ?? "Failed to send OTP",
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 28,
+            ),
             child: Column(
               children: [
 
@@ -32,7 +101,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () =>
+                        Navigator.pop(context),
                     icon: const Icon(
                       Icons.arrow_back_ios_new,
                       color: Colors.white,
@@ -46,11 +116,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: 95,
                   height: 95,
                   decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
+                    gradient:
+                        AppColors.primaryGradient,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(.35),
+                        color: AppColors.primary
+                            .withOpacity(.35),
                         blurRadius: 25,
                       )
                     ],
@@ -104,7 +176,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(.06),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius:
+                        BorderRadius.circular(18),
                     border: Border.all(
                       color: Colors.white12,
                     ),
@@ -116,7 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         "+91",
                         style: GoogleFonts.poppins(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                           fontSize: 18,
                         ),
                       ),
@@ -133,18 +207,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       Expanded(
                         child: TextField(
-                          controller: mobileController,
-                          keyboardType: TextInputType.phone,
+                          controller:
+                              mobileController,
+                          keyboardType:
+                              TextInputType.phone,
                           maxLength: 10,
-                          style: GoogleFonts.poppins(
+                          style:
+                              GoogleFonts.poppins(
                             color: Colors.white,
                           ),
-                          decoration: InputDecoration(
+                          decoration:
+                              InputDecoration(
                             counterText: "",
-                            border: InputBorder.none,
-                            hintText: "Enter Mobile Number",
-                            hintStyle: GoogleFonts.poppins(
-                              color: Colors.white38,
+                            border:
+                                InputBorder.none,
+                            hintText:
+                                "Enter Mobile Number",
+                            hintStyle:
+                                GoogleFonts.poppins(
+                              color:
+                                  Colors.white38,
                             ),
                           ),
                         ),
@@ -202,9 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, "/otp");
-                      },
+                      onPressed: isLoading ? null : login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -212,29 +292,73 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Continue",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Continue",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight:
+                                        FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 25),
+
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "New User?",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const FarmerRegisterScreen(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Register",
+                        style: GoogleFonts.poppins(
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
 
                 Text(
                   "By continuing, you agree to our",
@@ -247,7 +371,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 5),
 
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
                   children: [
                     TextButton(
                       onPressed: () {},

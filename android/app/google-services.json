@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "704420931000",
+    "project_id": "vidhai-747d5",
+    "storage_bucket": "vidhai-747d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:704420931000:android:f4af95bfd1ccc9aa1f1b4d",
+        "android_client_info": {
+          "package_name": "com.example.sem7_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpeox-XKrNbpeHN-fd0qMQpewwnOsyrtU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

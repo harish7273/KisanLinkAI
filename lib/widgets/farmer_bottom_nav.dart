@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../screens/home_screen.dart';
-import '../screens/farmer_products_screen.dart';
-import '../screens/farmer_orders_screen.dart';
 import '../screens/farmer_analytics_screen.dart';
+import '../screens/farmer_orders_screen.dart';
+import '../screens/farmer_products_screen.dart';
 import '../screens/farmer_profile_screen.dart';
+import '../screens/home_screen.dart';
+import '../screens/sell_screen.dart';
 
 class FarmerBottomNav extends StatefulWidget {
   const FarmerBottomNav({super.key});
@@ -19,121 +20,121 @@ class _FarmerBottomNavState extends State<FarmerBottomNav> {
   final List<Widget> pages = const [
     HomeScreen(),
     FarmerProductsScreen(),
+    SellScreen(), // Center FAB
     FarmerOrdersScreen(),
-    FarmerAnalyticsScreen(),
     FarmerProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
+
       body: IndexedStack(
         index: selectedIndex,
         children: pages,
       ),
 
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                navigationBarTheme: NavigationBarThemeData(
-                  backgroundColor: const Color(0xFF181818),
-                  indicatorColor:
-                      const Color(0xFF22C55E).withOpacity(.18),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF22C55E),
+        elevation: 8,
+        shape: const CircleBorder(),
+        onPressed: () {
+          setState(() {
+            selectedIndex = 2;
+          });
+        },
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
 
-                  labelTextStyle:
-                      WidgetStateProperty.resolveWith<TextStyle>(
-                    (states) {
-                      final selected =
-                          states.contains(WidgetState.selected);
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.centerDocked,
 
-                      return TextStyle(
-                        fontSize: 11,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: selected
-                            ? const Color(0xFF22C55E)
-                            : Colors.white60,
-                      );
-                    },
-                  ),
+      bottomNavigationBar: BottomAppBar(
+        color: const Color(0xFF181818),
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        child: SizedBox(
+          height: 70,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
 
-                  iconTheme:
-                      WidgetStateProperty.resolveWith<IconThemeData>(
-                    (states) {
-                      final selected =
-                          states.contains(WidgetState.selected);
-
-                      return IconThemeData(
-                        size: 24,
-                        color: selected
-                            ? const Color(0xFF22C55E)
-                            : Colors.white60,
-                      );
-                    },
-                  ),
-                ),
+              _navItem(
+                icon: Icons.home_rounded,
+                label: "Home",
+                index: 0,
               ),
-              child: NavigationBar(
-                backgroundColor: const Color(0xFF181818),
-                indicatorColor:
-                    const Color(0xFF22C55E).withOpacity(.18),
-                height: 72,
-                selectedIndex: selectedIndex,
 
-                labelBehavior:
-                    NavigationDestinationLabelBehavior.alwaysShow,
+              _navItem(
+                icon: Icons.agriculture_rounded,
+                label: "My Crops",
+                index: 1,
+              ),
 
-                onDestinationSelected: (index) {
-                  setState(() {
-                    selectedIndex = index;
-                  });
-                },
+              const SizedBox(width: 50),
 
-                destinations: const [
+              _navItem(
+                icon: Icons.shopping_bag_rounded,
+                label: "Orders",
+                index: 3,
+              ),
 
-                  NavigationDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home_rounded),
-                    label: "Home",
-                  ),
+              _navItem(
+                icon: Icons.person_rounded,
+                label: "Profile",
+                index: 4,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                  NavigationDestination(
-                    icon: Icon(Icons.agriculture_outlined),
-                    selectedIcon:
-                        Icon(Icons.agriculture_rounded),
-                    label: "My Crops",
-                  ),
+  Widget _navItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final selected = selectedIndex == index;
 
-                  NavigationDestination(
-                    icon:
-                        Icon(Icons.shopping_bag_outlined),
-                    selectedIcon:
-                        Icon(Icons.shopping_bag_rounded),
-                    label: "Orders",
-                  ),
-
-                  NavigationDestination(
-                    icon: Icon(Icons.bar_chart_outlined),
-                    selectedIcon:
-                        Icon(Icons.bar_chart_rounded),
-                    label: "Insights",
-                  ),
-
-                  NavigationDestination(
-                    icon: Icon(Icons.person_outline),
-                    selectedIcon:
-                        Icon(Icons.person_rounded),
-                    label: "Profile",
-                  ),
-                ],
+    return InkWell(
+      onTap: () {
+        setState(() {
+          selectedIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: SizedBox(
+        width: 65,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: selected
+                  ? const Color(0xFF22C55E)
+                  : Colors.white60,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: selected
+                    ? const Color(0xFF22C55E)
+                    : Colors.white60,
+                fontWeight: selected
+                    ? FontWeight.w600
+                    : FontWeight.normal,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

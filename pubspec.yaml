@@ -12,6 +12,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.0
+  cloud_firestore: ^6.0.0
+
+  pinput: ^5.0.1
+  country_code_picker: ^3.0.0
+
 
   cupertino_icons: ^1.0.8
 
@@ -52,6 +59,7 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+  http: ^1.2.1
 
 flutter:
   uses-material-design: true
@@ -60,3 +68,4 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/lottie/
+    - assets/crops/

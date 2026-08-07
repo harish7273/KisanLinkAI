@@ -1,45 +1,71 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# ============================
+# Python
+# ============================
+__pycache__/
+*.py[cod]
+*$py.class
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
+# Virtual Environment
+venv/
+.env/
+.venv/
+
+# Environment Variables
+.env
+
+# Logs
+*.log
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# PyCharm
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# macOS
+.DS_Store
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
+# Windows
+Thumbs.db
 
-# Symbolication related
-app.*.symbols
+# ML Models
+saved_model/
+*.joblib
+*.pkl
 
-# Obfuscation related
-app.*.map.json
+# Dataset (Optional)
+# Uncomment if you don't want to upload datasets to GitHub
+# data/raw/
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Coverage
+.coverage
+htmlcov/
+
+# pytest
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Bytecode
+*.pyc
+
+# SQLite
+*.db
+*.sqlite3
