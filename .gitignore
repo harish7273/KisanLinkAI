@@ -69,3 +69,22 @@ htmlcov/
 # SQLite
 *.db
 *.sqlite3
+
+# ============================
+# Flutter / Dart
+# ============================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.dill
+
+# ============================
+# Android & Gradle
+# ============================
+.gradle/
+local.properties
+**/android/.gradle/
+**/android/app/build/
+**/android/build/

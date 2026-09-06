@@ -2,6 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../models/order_model.dart';
+import 'tracking/buyer_order_details_screen.dart';
+import 'tracking/buyer_live_tracking_screen.dart';
+
 
 // ==================================================================
 // PRODUCT IMAGE FROM LOCAL ASSETS
@@ -408,9 +412,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => OrderDetailsScreen(
-              orderId: documentId,
-              order: order,
+            builder: (_) => BuyerOrderDetailsScreen(
+              order: OrderModel.fromMap(order, documentId),
             ),
           ),
         );
@@ -655,34 +658,46 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    height: 52,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF12191A),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: .11),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'View Details',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BuyerOrderDetailsScreen(
+                            order: OrderModel.fromMap(order, documentId),
                           ),
                         ),
-                        SizedBox(width: 7),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Colors.white,
-                          size: 23,
+                      );
+                    },
+                    child: Container(
+                      height: 52,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF12191A),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .11),
                         ),
-                      ],
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'View Details',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(width: 7),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.white,
+                            size: 23,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -884,10 +899,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   int _currentStep(String status) {
-    switch (status) {
-      case 'accepted':
-      case 'preparing':
-      case 'packed':
+    final s = status.toLowerCase().trim();
+    switch (s) {
+      case 'picked up':
         return 1;
       case 'out for delivery':
         return 2;
@@ -995,15 +1009,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => OrderDetailsScreen(
-                    orderId: documentId,
-                    order: order,
+              if (isDelivered) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Items from this order added to your cart!'),
+                    backgroundColor: green,
                   ),
-                ),
-              );
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BuyerLiveTrackingScreen(
+                      order: OrderModel.fromMap(order, documentId),
+                    ),
+                  ),
+                );
+              }
             },
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -1027,14 +1049,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     isDelivered
                         ? Icons.refresh
                         : Icons.location_on,
-                    color: Colors.white,
+                    color: isDelivered ? green : Colors.black,
                     size: 19,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     isDelivered ? 'Reorder' : 'Live Tracking',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: isDelivered ? green : Colors.black,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                     ),
@@ -1701,9 +1723,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
   String _formatDate(dynamic value) {
     if (value is Timestamp) {
       final date = value.toDate();
-
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      final month = months[date.month - 1];
       final day = date.day.toString().padLeft(2, '0');
-      final month = date.month.toString().padLeft(2, '0');
 
       final hour = date.hour == 0
           ? 12
@@ -1714,7 +1739,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       final minute = date.minute.toString().padLeft(2, '0');
       final period = date.hour >= 12 ? 'PM' : 'AM';
 
-      return '$day $month ${date.year} • $hour:$minute $period';
+      return '$day $month ${date.year}, $hour:$minute $period';
     }
 
     return '';

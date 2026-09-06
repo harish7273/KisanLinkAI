@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'buyer_login_screen.dart';
+import 'delivery/delivery_login_screen.dart';
 
 class RoleScreen extends StatefulWidget {
   const RoleScreen({super.key});
@@ -18,6 +19,8 @@ class _RoleScreenState extends State<RoleScreen> {
 
   static const Color buyerOrange = Color(0xFFE87500);
   static const Color buyerLight = Color(0xFFFFE6B9);
+
+  static const Color deliveryYellow = Color(0xFFFFC107);
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +141,10 @@ class _RoleScreenState extends State<RoleScreen> {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 14),
+
+                  _buildDeliveryPartnerCard(),
 
                   const SizedBox(height: 18),
 
@@ -329,6 +336,80 @@ class _RoleScreenState extends State<RoleScreen> {
           ),
         );
       },
+    );
+  }
+
+  // ============================================================
+  // DELIVERY PARTNER
+  // ============================================================
+
+  Widget _buildDeliveryPartnerCard() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedRole = 2;
+        });
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const DeliveryLoginScreen(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B1B15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selectedRole == 2 ? deliveryYellow : Colors.white24,
+            width: selectedRole == 2 ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: deliveryYellow.withOpacity(selectedRole == 2 ? 0.25 : 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: const BoxDecoration(
+                color: deliveryYellow,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.electric_moped_rounded, color: Colors.black, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'I am a Delivery Partner',
+                    style: GoogleFonts.outfit(
+                      color: deliveryYellow,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Deliver fresh farm produce & earn on every trip.',
+                    style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: deliveryYellow, size: 16),
+          ],
+        ),
+      ),
     );
   }
 

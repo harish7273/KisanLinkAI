@@ -35,6 +35,13 @@ import 'screens/buyer_registration_screen.dart';
 import 'screens/buyer_home_screen.dart';
 
 // ============================================================
+// DELIVERY PARTNER
+// ============================================================
+
+import 'screens/delivery/delivery_login_screen.dart';
+import 'screens/delivery/delivery_home_screen.dart';
+
+// ============================================================
 // OTHER
 // ============================================================
 
@@ -230,6 +237,18 @@ class FarmDirectApp extends StatelessWidget {
 
         '/add-crop': (context) {
           return const AddProductScreen();
+        },
+
+        // ======================================================
+        // DELIVERY PARTNER
+        // ======================================================
+
+        '/delivery-login': (context) {
+          return const DeliveryLoginScreen();
+        },
+
+        '/delivery-home': (context) {
+          return const DeliveryHomeScreen();
         },
       },
     );

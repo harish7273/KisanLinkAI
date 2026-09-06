@@ -63,33 +63,10 @@ class _BuyerRegistrationScreenState
 
     try {
       // ========================================================
-      // CHECK USERNAME
-      // ========================================================
-
-      final existing = await FirebaseFirestore.instance
-          .collection('users')
-          .where(
-            'username',
-            isEqualTo: username,
-          )
-          .limit(1)
-          .get();
-
-      if (existing.docs.isNotEmpty) {
-        throw Exception(
-          'Username already exists. Please choose another one.',
-        );
-      }
-
-      // ========================================================
-      // INTERNAL EMAIL
+      // INTERNAL EMAIL & FIREBASE AUTH
       // ========================================================
 
       final email = '$username@vidhai.app';
-
-      // ========================================================
-      // FIREBASE AUTH
-      // ========================================================
 
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
@@ -106,7 +83,7 @@ class _BuyerRegistrationScreenState
       }
 
       // ========================================================
-      // FIRESTORE
+      // FIRESTORE PROFILE (Authenticated request.auth.uid == user.uid)
       // ========================================================
 
       await FirebaseFirestore.instance
@@ -119,15 +96,17 @@ class _BuyerRegistrationScreenState
         'username': username,
         'email': email,
         'role': 'buyer',
-
         'phone': '',
+        'deliveryAddress': '',
         'location': '',
         'district': '',
         'state': '',
-
+        'profileAvatar': 'buyer_1',
         'createdAt':
             FieldValue.serverTimestamp(),
-      });
+        'updatedAt':
+            FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
 

@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+
+import '../constants/api_config.dart';
+import '../services/location_service.dart';
 
 class PaymentScreen extends StatefulWidget {
   final double totalAmount;
@@ -66,19 +70,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // BACKEND
   // ============================================================
 
-  static const String backendUrl =
-      'http://172.120.23.169:8080';
+  static String get backendUrl => ApiConfig.paymentBackendUrl;
 
   // ============================================================
   // RAZORPAY KEY
   // ============================================================
-  //
-  // Keep the same key you were already using if this is different.
-  //
-  // ============================================================
 
-  static const String razorpayKeyId =
-      'rzp_test_TOT4ASXnGKXbXF';
+  static const String razorpayKeyId = ApiConfig.defaultRazorpayKeyId;
 
   // ============================================================
   // INIT
@@ -859,79 +857,59 @@ class _PaymentScreenState extends State<PaymentScreen> {
   // ============================================================
 
   Future<void> _startRazorpayPayment() async {
-    final amountPaise =
-        (widget.totalAmount * 100).round();
+    final amountPaise = (widget.totalAmount * 100).round();
+    final candidates = ApiConfig.candidateBackendUrls;
 
-    debugPrint(
-      '========================================',
-    );
+    debugPrint('========================================');
+    debugPrint('CREATING RAZORPAY ORDER');
+    debugPrint('Amount: $amountPaise paise');
+    debugPrint('Candidate hosts: $candidates');
+    debugPrint('========================================');
 
-    debugPrint(
-      'CREATING RAZORPAY ORDER',
-    );
+    http.Response? response;
+    String? successfulUrl;
+    dynamic lastError;
 
-    debugPrint(
-      'Backend: $backendUrl',
-    );
-
-    debugPrint(
-      'Amount: $amountPaise',
-    );
-
-    debugPrint(
-      '========================================',
-    );
-
-    final response = await http
-        .post(
-          Uri.parse(
-            '$backendUrl/api/payment/create-order',
-          ),
-          headers: {
-            'Content-Type':
-                'application/json',
-          },
+    for (final host in candidates) {
+      try {
+        debugPrint('Trying Razorpay backend at: $host/api/payment/create-order');
+        final res = await http.post(
+          Uri.parse('$host/api/payment/create-order'),
+          headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'amount': amountPaise,
-            'receipt':
-                'VIDHAI_${DateTime.now().millisecondsSinceEpoch}',
+            'receipt': 'VIDHAI_${DateTime.now().millisecondsSinceEpoch}',
           }),
-        )
-        .timeout(
-          const Duration(
-            seconds: 15,
-          ),
-        );
+        ).timeout(const Duration(seconds: 4));
 
-    debugPrint(
-      'RAZORPAY BACKEND STATUS: '
-      '${response.statusCode}',
-    );
+        debugPrint('Backend response from $host: ${res.statusCode}');
 
-    debugPrint(
-      'RAZORPAY BACKEND RESPONSE: '
-      '${response.body}',
-    );
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          response = res;
+          successfulUrl = host;
+          ApiConfig.setWorkingUrl(host);
+          debugPrint('✅ Successfully connected to payment backend at $host');
+          break;
+        } else {
+          lastError = 'Server returned ${res.statusCode}: ${res.body}';
+        }
+      } catch (e) {
+        debugPrint('Backend attempt failed for $host: $e');
+        lastError = e;
+      }
+    }
 
-    if (response.statusCode != 200 &&
-        response.statusCode != 201) {
+    if (response == null || successfulUrl == null) {
       throw Exception(
-        'Backend returned ${response.statusCode}',
+        'Payment backend unreachable ($lastError). Please verify Spring Boot is running on port 8080 at http://${ApiConfig.machineLanIp}:8080',
       );
     }
 
-    final data =
-        jsonDecode(response.body)
-            as Map<String, dynamic>;
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final orderId = data['orderId']?.toString();
 
-    final orderId =
-        data['orderId']?.toString();
-
-    if (orderId == null ||
-        orderId.isEmpty) {
-      throw Exception(
-        'Razorpay order ID missing.',
-      );
+    if (orderId == null || orderId.isEmpty) {
+      throw Exception('Razorpay order ID missing from server response.');
     }
 
     final options =
@@ -997,18 +975,43 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
 
     try {
+      // ========================================================
+      // 1. SERVER-SIDE SIGNATURE VERIFICATION
+      // ========================================================
+      debugPrint('VERIFYING SIGNATURE ON SPRING BOOT BACKEND...');
+      final verifyResponse = await http.post(
+        Uri.parse('$backendUrl/api/payment/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'razorpayOrderId': response.orderId ?? '',
+          'razorpayPaymentId': response.paymentId ?? '',
+          'razorpaySignature': response.signature ?? '',
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (verifyResponse.statusCode != 200) {
+        throw Exception('Payment verification failed on server: ${verifyResponse.body}');
+      }
+
+      final verifyResult = jsonDecode(verifyResponse.body) as Map<String, dynamic>;
+      if (verifyResult['verified'] != true) {
+        throw Exception('Server rejected payment signature: ${verifyResult['message']}');
+      }
+
+      debugPrint('✅ PAYMENT SIGNATURE VERIFIED BY SERVER SUCCESSFULLY');
+
+      // ========================================================
+      // 2. CREATE FIRESTORE ORDER
+      // ========================================================
       await _createFirestoreOrder(
         paymentStatus: 'Paid',
-        razorpayPaymentId:
-            response.paymentId,
-        razorpayOrderId:
-            response.orderId,
-        razorpaySignature:
-            response.signature,
+        razorpayPaymentId: response.paymentId,
+        razorpayOrderId: response.orderId,
+        razorpaySignature: response.signature,
       );
     } catch (e) {
       debugPrint(
-        'ORDER CREATION ERROR: $e',
+        'ORDER CREATION / VERIFICATION ERROR: $e',
       );
 
       if (!mounted) return;
@@ -1018,7 +1021,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       });
 
       _snack(
-        'Payment succeeded, but order creation failed: $e',
+        'Payment error: $e',
       );
     }
   }
@@ -1369,226 +1372,115 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // DELIVERY
     // ==========================================================
 
-    final deliveryFee =
-        subtotal >= 499
-            ? 0.0
-            : 40.0;
-
-    final total =
-        subtotal + deliveryFee;
+    final deliveryFee = subtotal >= 499 ? 0.0 : 40.0;
+    final total = subtotal + deliveryFee;
 
     // ==========================================================
-    // TOP LEVEL FARMER
+    // MULTI-FARMER CART SPLITTING & COORDINATES
     // ==========================================================
 
-    final firstItem =
-        items.first;
+    double buyerLat = 11.0168;
+    double buyerLng = 76.9558;
+    try {
+      final pos = await LocationService.getCurrentLocation();
+      buyerLat = pos.latitude;
+      buyerLng = pos.longitude;
+    } catch (_) {}
 
-    final String farmerId =
-        firstItem['farmerId']
-                ?.toString() ??
-            '';
+    // Group items by farmerId
+    final Map<String, List<Map<String, dynamic>>> farmerGroupedItems = {};
+    for (final item in items) {
+      final fId = item['farmerId']?.toString() ?? 'unknown_farmer';
+      farmerGroupedItems.putIfAbsent(fId, () => []).add(item);
+    }
 
-    final String farmerName =
-        firstItem['farmerName']
-                ?.toString() ??
-            'Farmer';
+    final String paymentGroupId = 'PAY_${DateTime.now().millisecondsSinceEpoch}';
+    String lastCreatedOrderId = '';
 
-    debugPrint(
-      '========================================',
-    );
+    for (final entry in farmerGroupedItems.entries) {
+      final currentFarmerId = entry.key;
+      final currentItems = entry.value;
 
-    debugPrint(
-      'FINAL ORDER FARMER',
-    );
+      double farmerSubtotal = 0;
+      for (final it in currentItems) {
+        farmerSubtotal += _double(it['itemTotal']);
+      }
 
-    debugPrint(
-      'Farmer ID: $farmerId',
-    );
+      final currentFarmerName = currentItems.first['farmerName']?.toString() ?? 'Farmer';
+      final currentFarmerLocation = currentItems.first['location']?.toString() ?? 'Farm';
 
-    debugPrint(
-      'Farmer Name: $farmerName',
-    );
+      // Lookup farmer GPS from users collection if available
+      double farmLat = 11.0168;
+      double farmLng = 76.9558;
+      try {
+        final farmerDoc = await _firestore.collection('users').doc(currentFarmerId).get();
+        if (farmerDoc.exists) {
+          final fData = farmerDoc.data() ?? {};
+          if (fData['currentLat'] != null) farmLat = _double(fData['currentLat']);
+          if (fData['currentLng'] != null) farmLng = _double(fData['currentLng']);
+        }
+      } catch (_) {}
 
-    debugPrint(
-      'Buyer ID: ${user.uid}',
-    );
+      // Secure 4-digit OTPs
+      final random = Random();
+      final String pickupOtp = (1000 + random.nextInt(9000)).toString();
+      final String deliveryOtp = (1000 + random.nextInt(9000)).toString();
 
-    debugPrint(
-      '========================================',
-    );
+      final orderRef = _firestore.collection('orders').doc();
+      lastCreatedOrderId = orderRef.id;
 
-    // ==========================================================
-    // CREATE ORDER
-    // ==========================================================
+      final double currentDeliveryFee = farmerSubtotal >= 499 ? 0.0 : 40.0;
+      final double currentTotal = farmerSubtotal + currentDeliveryFee;
 
-    final orderRef =
-        _firestore
-            .collection('orders')
-            .doc();
-
-    await orderRef.set({
-      'orderId':
-          orderRef.id,
-
-      'buyerId':
-          user.uid,
-
-      'buyerName':
-          widget.buyerName,
-
-      'buyerPhone':
-          widget.phone,
-
-      'deliveryAddress':
-          widget.deliveryAddress,
-
-      // ⭐ TOP LEVEL FARMER ID
-      'farmerId':
-          farmerId,
-
-      'farmerName':
-          farmerName,
-
-      'items':
-          items,
-
-      'subtotal':
-          subtotal,
-
-      'deliveryFee':
-          deliveryFee,
-
-      'totalAmount':
-          total,
-
-      'paymentMethod':
-          _selectedPayment,
-
-      'paymentStatus':
-          paymentStatus,
-
-      'orderStatus':
-          'Placed',
-
-      'razorpayPaymentId':
-          razorpayPaymentId,
-
-      'razorpayOrderId':
-          razorpayOrderId,
-
-      'razorpaySignature':
-          razorpaySignature,
-
-      'createdAt':
-          FieldValue.serverTimestamp(),
-
-      'updatedAt':
-          FieldValue.serverTimestamp(),
-    });
-
-    debugPrint(
-      '========================================',
-    );
-
-    debugPrint(
-      '✅ ORDER CREATED SUCCESSFULLY',
-    );
-
-    debugPrint(
-      'Order ID: ${orderRef.id}',
-    );
-
-    debugPrint(
-      'Farmer ID: $farmerId',
-    );
-
-    debugPrint(
-      'Farmer Name: $farmerName',
-    );
-
-    debugPrint(
-      'Payment Status: $paymentStatus',
-    );
-
-    debugPrint(
-      '========================================',
-    );
-
-    // ==========================================================
-    // CREATE FARMER NOTIFICATION
-    // ==========================================================
-
-    if (farmerId.isNotEmpty) {
-      final firstProductName =
-          firstItem['name']
-                  ?.toString() ??
-              'Product';
-
-      final quantity =
-          _double(
-        firstItem['quantity'],
-      );
-
-      final unit =
-          firstItem['unit']
-                  ?.toString() ??
-              'Kg';
-
-      final notificationRef =
-          _firestore
-              .collection('notifications')
-              .doc();
-
-      await notificationRef.set({
-        'recipientId':
-            farmerId,
-
-        'title':
-            'New Order',
-
-        'message':
-            '${widget.buyerName} ordered '
-            '${_quantity(quantity)} '
-            '$unit '
-            '$firstProductName',
-
-        'type':
-            'new_order',
-
-        'orderId':
-            orderRef.id,
-
-        'buyerId':
-            user.uid,
-
-        'buyerName':
-            widget.buyerName,
-
-        'farmerId':
-            farmerId,
-
-        'farmerName':
-            farmerName,
-
-        'isRead':
-            false,
-
-        'createdAt':
-            FieldValue.serverTimestamp(),
+      await orderRef.set({
+        'orderId': orderRef.id,
+        'paymentGroupId': paymentGroupId,
+        'buyerId': user.uid,
+        'buyerName': widget.buyerName,
+        'buyerPhone': widget.phone,
+        'deliveryAddress': widget.deliveryAddress,
+        'farmerId': currentFarmerId,
+        'farmerName': currentFarmerName,
+        'farmerLocation': currentFarmerLocation,
+        'items': currentItems,
+        'subtotal': farmerSubtotal,
+        'deliveryFee': currentDeliveryFee,
+        'totalAmount': currentTotal,
+        'paymentMethod': _selectedPayment,
+        'paymentStatus': paymentStatus,
+        'orderStatus': 'Placed',
+        'deliveryStatus': 'Pending',
+        'pickupOtp': pickupOtp,
+        'deliveryOtp': deliveryOtp,
+        'pickupLatitude': farmLat,
+        'pickupLongitude': farmLng,
+        'dropLatitude': buyerLat,
+        'dropLongitude': buyerLng,
+        'razorpayPaymentId': razorpayPaymentId,
+        'razorpayOrderId': razorpayOrderId,
+        'razorpaySignature': razorpaySignature,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      debugPrint(
-        '🔔 FARMER NOTIFICATION CREATED',
-      );
+      // Notification for this farmer
+      final firstProductName = currentItems.first['name']?.toString() ?? 'Product';
+      final quantity = _double(currentItems.first['quantity']);
+      final unit = currentItems.first['unit']?.toString() ?? 'Kg';
 
-      debugPrint(
-        'Notification Farmer: $farmerId',
-      );
-
-      debugPrint(
-        'Notification Order: ${orderRef.id}',
-      );
+      await _firestore.collection('notifications').add({
+        'recipientId': currentFarmerId,
+        'title': 'New Order',
+        'message': '${widget.buyerName} ordered ${_quantity(quantity)} $unit $firstProductName',
+        'type': 'new_order',
+        'orderId': orderRef.id,
+        'buyerId': user.uid,
+        'buyerName': widget.buyerName,
+        'farmerId': currentFarmerId,
+        'farmerName': currentFarmerName,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     }
 
     // ==========================================================
@@ -1622,7 +1514,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     await _successDialog(
-      orderRef.id,
+      lastCreatedOrderId,
       total,
     );
   }

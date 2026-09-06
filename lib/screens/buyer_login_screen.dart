@@ -41,82 +41,120 @@ class _BuyerLoginScreenState
       return;
     }
 
-    final username =
-        _usernameController.text
-            .trim()
-            .toLowerCase();
-
-    final password =
-        _passwordController.text;
+    final rawUsername = _usernameController.text.trim();
+    final username = rawUsername.toLowerCase();
+    final password = _passwordController.text;
 
     setState(() {
       _loading = true;
     });
 
     try {
-      final result =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .where(
-                'username',
-                isEqualTo: username,
-              )
-              .where(
-                'role',
-                isEqualTo: 'buyer',
-              )
-              .limit(1)
-              .get();
+      final email =
+          username.contains('@') ? username : '$username@vidhai.app';
 
-      if (result.docs.isEmpty) {
-        throw Exception(
-          'Username not found.',
+      UserCredential credential;
+      try {
+        credential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+          email: email,
+          password: password,
         );
+      } on FirebaseAuthException catch (authError) {
+        // If account not found or invalid-credential on first login, auto-register as buyer
+        if (authError.code == 'user-not-found') {
+          credential = await FirebaseAuth.instance
+              .createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+        } else if (authError.code == 'invalid-credential') {
+          try {
+            credential = await FirebaseAuth.instance
+                .createUserWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+          } on FirebaseAuthException catch (createError) {
+            if (createError.code == 'email-already-in-use') {
+              throw FirebaseAuthException(
+                code: 'wrong-password',
+                message: 'Incorrect password for buyer $rawUsername.',
+              );
+            }
+            rethrow;
+          }
+        } else {
+          rethrow;
+        }
       }
 
-      final data =
-          result.docs.first.data();
+      final user = credential.user;
+      if (user == null) {
+        throw Exception('Unable to authenticate buyer account.');
+      }
 
-      final email =
-          data['email']?.toString() ??
-              '$username@vidhai.app';
+      // Now authenticated: safely load or initialize profile document in Firestore
+      final userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final docSnapshot = await userDocRef.get();
 
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      if (!docSnapshot.exists) {
+        await userDocRef.set({
+          'uid': user.uid,
+          'name': rawUsername,
+          'username': username,
+          'email': email,
+          'role': 'buyer',
+          'shopName': '$rawUsername Store',
+          'phone': '',
+          'deliveryAddress': '',
+          'location': '',
+          'profileAvatar': 'buyer_1',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } else {
+        final data = docSnapshot.data() ?? {};
+        final role = data['role']?.toString().toLowerCase();
+
+        if (role != null && role.isNotEmpty && role != 'buyer') {
+          await FirebaseAuth.instance.signOut();
+          throw Exception(
+              'This account is registered as "$role". Please login via the $role screen.');
+        } else if (role == null || role.isEmpty) {
+          await userDocRef.set({
+            'role': 'buyer',
+            'name': data['name'] ?? rawUsername,
+            'username': username,
+          }, SetOptions(merge: true));
+        }
+      }
 
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              const MainScreen(),
+          builder: (context) => const MainScreen(),
         ),
         (route) => false,
       );
     } on FirebaseAuthException catch (e) {
-      String message =
-          'Login failed.';
+      String message = 'Login failed.';
 
-      if (e.code ==
-              'invalid-credential' ||
-          e.code ==
-              'wrong-password' ||
-          e.code ==
-              'user-not-found') {
-        message =
-            'Invalid username or password.';
-      } else if (e.code ==
-          'too-many-requests') {
-        message =
-            'Too many attempts. Try again later.';
-      } else if (e.code ==
-          'network-request-failed') {
-        message =
-            'Check your internet connection.';
+      if (e.code == 'invalid-credential' ||
+          e.code == 'wrong-password' ||
+          e.code == 'user-not-found') {
+        message = 'Invalid username or password.';
+      } else if (e.code == 'weak-password') {
+        message = 'Password must be at least 6 characters.';
+      } else if (e.code == 'too-many-requests') {
+        message = 'Too many attempts. Try again later.';
+      } else if (e.code == 'network-request-failed') {
+        message = 'Check your internet connection.';
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        message = e.message!;
       }
 
       _showMessage(message);

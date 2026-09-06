@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../models/order_model.dart';
+import 'tracking/buyer_live_tracking_screen.dart';
 
 class FarmerOrdersScreen extends StatefulWidget {
   const FarmerOrdersScreen({super.key});
@@ -1678,121 +1682,242 @@ class _FarmerOrderDetailsScreenState
   // ============================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final items =
-        _items(order['items']);
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .doc(widget.orderId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final currentOrder = (snapshot.hasData && snapshot.data!.data() != null)
+            ? snapshot.data!.data()!
+            : order;
 
-    final buyerName =
-        order['buyerName']
-                ?.toString() ??
-            'Buyer';
+        final items = _items(currentOrder['items']);
+        final buyerName = currentOrder['buyerName']?.toString() ?? 'Buyer';
+        final buyerPhone = currentOrder['buyerPhone']?.toString() ?? '';
+        final address = currentOrder['deliveryAddress']?.toString() ?? '';
+        final status = currentOrder['orderStatus']?.toString() ?? 'Placed';
+        final total = _number(currentOrder['totalAmount']);
+        final createdAt = _getDate(currentOrder['createdAt']);
+        final hasPartner = currentOrder['deliveryPartnerId'] != null;
 
-    final buyerPhone =
-        order['buyerPhone']
-                ?.toString() ??
-            '';
-
-    final address =
-        order['deliveryAddress']
-                ?.toString() ??
-            '';
-
-    final status =
-        order['orderStatus']
-                ?.toString() ??
-            'Placed';
-
-    final total =
-        _number(
-      order['totalAmount'],
-    );
-
-    final createdAt =
-        _getDate(
-      order['createdAt'],
-    );
-
-    return Scaffold(
-      backgroundColor:
-          background,
-      body: SafeArea(
-        child: CustomScrollView(
-          physics:
-              const BouncingScrollPhysics(),
-          slivers: [
-            // ==================================================
-            // HEADER
-            // ==================================================
-
-            SliverToBoxAdapter(
-              child: _header(
-                status,
-                createdAt,
-              ),
+        return Scaffold(
+          backgroundColor: background,
+          body: SafeArea(
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _header(status, createdAt),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 30),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate(
+                      [
+                        if (hasPartner) ...[
+                          _deliveryPartnerCard(currentOrder),
+                          const SizedBox(height: 10),
+                        ],
+                        _buyerCard(buyerName, buyerPhone),
+                        const SizedBox(height: 10),
+                        _itemsCard(items),
+                        const SizedBox(height: 10),
+                        _summaryCard(total),
+                        if (address.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          _deliveryCard(address),
+                        ],
+                        const SizedBox(height: 10),
+                        _actionSection(status),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
+          ),
+        );
+      },
+    );
+  }
 
-            // ==================================================
-            // CONTENT
-            // ==================================================
+  // ============================================================
+  // DELIVERY PARTNER CARD (FARMER VIEW)
+  // ============================================================
 
-            SliverPadding(
-              padding:
-                  const EdgeInsets.fromLTRB(
-                12,
-                0,
-                12,
-                30,
+  Widget _deliveryPartnerCard(Map<String, dynamic> currentOrder) {
+    final partnerName = currentOrder['deliveryPartnerName']?.toString() ?? 'Assigned Partner';
+    final partnerPhone = currentOrder['deliveryPartnerPhone']?.toString() ?? '';
+    final partnerVehicle = currentOrder['deliveryPartnerVehicle']?.toString() ?? '';
+    final pickupOtp = currentOrder['pickupOtp']?.toString() ?? '';
+
+    return _darkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: green.withValues(alpha: .12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delivery_dining_rounded,
+                  color: green,
+                  size: 26,
+                ),
               ),
-              sliver:
-                  SliverList(
-                delegate:
-                    SliverChildListDelegate(
-                  [
-                    _buyerCard(
-                      buyerName,
-                      buyerPhone,
-                    ),
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    _itemsCard(
-                      items,
-                    ),
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    _summaryCard(
-                      total,
-                    ),
-
-                    if (address.isNotEmpty) ...[
-                      const SizedBox(
-                        height: 10,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Delivery Partner Assigned',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
-                      _deliveryCard(
-                        address,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      partnerName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (partnerVehicle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        partnerVehicle,
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
-
-                    const SizedBox(
-                      height: 10,
-                    ),
-
-                    _actionSection(
-                      status,
-                    ),
                   ],
                 ),
               ),
+              if (partnerPhone.isNotEmpty)
+                IconButton(
+                  onPressed: () async {
+                    final uri = Uri.parse('tel:$partnerPhone');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: green.withValues(alpha: .15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.call_rounded,
+                      color: green,
+                      size: 20,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (pickupOtp.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFB800).withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFFFB800).withValues(alpha: .4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.pin_rounded,
+                    color: Color(0xFFFFB800),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Pickup Verification OTP',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          pickupOtp,
+                          style: const TextStyle(
+                            color: Color(0xFFFFB800),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Text(
+                    'Share with partner',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
-        ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BuyerLiveTrackingScreen(
+                      order: OrderModel.fromMap(currentOrder, widget.orderId),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.navigation_rounded, size: 18),
+              label: const Text(
+                'Track Delivery Partner Live',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: green,
+                foregroundColor: Colors.black,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
