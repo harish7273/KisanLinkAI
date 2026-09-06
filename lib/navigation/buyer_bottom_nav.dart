@@ -4,7 +4,7 @@ import '../screens/buyer_home_screen.dart';
 import '../screens/buyer_market_screen.dart';
 import '../screens/wishlist_screen.dart';
 import '../screens/orders_screen.dart';
-import '../screens/buyer_profile_screen.dart';
+import '../screens/a.dart';
 
 class BuyerBottomNav extends StatefulWidget {
   const BuyerBottomNav({super.key});

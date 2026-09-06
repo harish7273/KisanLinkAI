@@ -1,553 +1,2526 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-import '../widgets/custom_header.dart';
+import '../models/product_model.dart';
+import '../services/product_service.dart';
+import 'role_screen.dart';
+import 'buyer_auction_screen.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
   const BuyerHomeScreen({super.key});
 
   @override
-  State<BuyerHomeScreen> createState() => _BuyerHomeScreenState();
+  State<BuyerHomeScreen> createState() =>
+      _BuyerHomeScreenState();
 }
 
 class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color orange = Color(0xFFFF9800);
+  static const Color background = Color(0xFF080A08);
+  static const Color card = Color(0xFF151817);
+
+  // ============================================================
+  // PRODUCT SERVICE
+  // ============================================================
+
+  final ProductService _productService =
+      ProductService();
+
+  // ============================================================
+  // CATEGORY
+  // ============================================================
+
+  String selectedCategory = "All";
+
+  final List<Map<String, dynamic>> categories = [
+    {
+      "name": "Vegetables",
+      "icon": "🥬",
+      "value": "Vegetable",
+    },
+    {
+      "name": "Fruits",
+      "icon": "🍎",
+      "value": "Fruit",
+    },
+    {
+      "name": "Grains",
+      "icon": "🌾",
+      "value": "Grains",
+    },
+    {
+      "name": "Spices",
+      "icon": "🌶️",
+      "value": "Spice",
+    },
+    {
+      "name": "Oil Seeds",
+      "icon": "🥜",
+      "value": "Oil Seed",
+    },
+  ];
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: background,
 
+      // BuyerBottomNav handles:
+      // Home | Market | Cart | Orders | Profile
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
+        child: _buildHome(),
+      ),
+    );
+  }
 
-              /// Header
-              const CustomHeader(
-                farmerName: "Madhan",
+  // ============================================================
+  // HOME
+  // ============================================================
+
+  Widget _buildHome() {
+    return StreamBuilder<List<ProductModel>>(
+      stream: _productService.getProducts(),
+      builder: (context, snapshot) {
+        // --------------------------------------------------------
+        // LOADING
+        // --------------------------------------------------------
+
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: orange,
+            ),
+          );
+        }
+
+        // --------------------------------------------------------
+        // ERROR
+        // --------------------------------------------------------
+
+        if (snapshot.hasError) {
+          return _buildErrorState(
+            snapshot.error.toString(),
+          );
+        }
+
+        // --------------------------------------------------------
+        // PRODUCTS
+        // --------------------------------------------------------
+
+        List<ProductModel> products =
+            snapshot.data ?? [];
+
+        products = products
+            .where(
+              (product) => product.available,
+            )
+            .toList();
+
+        // --------------------------------------------------------
+        // CATEGORY FILTER
+        // --------------------------------------------------------
+
+        if (selectedCategory != "All") {
+          products = products
+              .where(
+                (product) => _categoryMatches(
+                  product.category,
+                  selectedCategory,
+                ),
+              )
+              .toList();
+        }
+
+        return RefreshIndicator(
+          color: orange,
+          backgroundColor: card,
+
+          onRefresh: () async {
+            setState(() {});
+
+            await Future.delayed(
+              const Duration(
+                milliseconds: 400,
+              ),
+            );
+          },
+
+          child: SingleChildScrollView(
+            physics:
+                const AlwaysScrollableScrollPhysics(),
+
+            child: Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(
+                18,
+                12,
+                18,
+                30,
               ),
 
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    /// Search Bar
-Container(
-  height: 56,
-  decoration: BoxDecoration(
-    color: const Color(0xFF181818),
-    borderRadius: BorderRadius.circular(18),
-    border: Border.all(
-      color: const Color(0xFFFF9800).withValues(alpha: 0.20),
-    ),
-  ),
-  child: const TextField(
-    style: TextStyle(
-      color: Colors.white,
-    ),
-    decoration: InputDecoration(
-      border: InputBorder.none,
-      prefixIcon: Icon(
-        Icons.search_rounded,
-        color: Color(0xFF017422),
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: [
+                  // ==================================================
+                  // HEADER
+                  // ==================================================
+
+                  _buildHeader(),
+
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  // ==================================================
+                  // SEARCH
+                  // ==================================================
+
+                  _buildSearchBar(),
+
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  // ==================================================
+                  // HERO
+                  // ==================================================
+
+                  _buildHeroBanner(),
+
+                  const SizedBox(
+                    height: 28,
+                  ),
+
+                  // ==================================================
+                  // CATEGORY
+                  // ==================================================
+
+                  _buildSectionTitle(
+                    "Shop by Category",
+                  ),
+
+                  const SizedBox(
+                    height: 16,
+                  ),
+
+                  _buildCategories(),
+
+                  const SizedBox(
+                    height: 28,
+                  ),
+
+                  // ==================================================
+                  // PRODUCTS
+                  // ==================================================
+
+                  _buildSectionTitle(
+                    "Fresh Picks for You",
+                  ),
+
+                  const SizedBox(
+                    height: 16,
+                  ),
+
+                  if (products.isEmpty)
+                    _buildEmptyProducts()
+                  else
+                    _buildProductList(
+                      products,
+                    ),
+
+                  const SizedBox(
+                    height: 25,
+                  ),
+
+                  // ==================================================
+                  // DELIVERY
+                  // ==================================================
+
+                  _buildDeliveryBanner(),
+
+                  const SizedBox(
+                    height: 15,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // HEADER
+  // ============================================================
+
+  Widget _buildHeader() {
+    return SizedBox(
+      height: 58,
+
+      child: Row(
+        children: [
+          // --------------------------------------------------------
+          // HAMBURGER
+          // --------------------------------------------------------
+
+          GestureDetector(
+            onTap: _showMenu,
+
+            child: Container(
+              width: 48,
+              height: 48,
+
+              decoration: BoxDecoration(
+                color: card,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(
+                    alpha: 0.08,
+                  ),
+                ),
+              ),
+
+              child: const Icon(
+                Icons.menu_rounded,
+                color: Colors.white,
+                size: 27,
+              ),
+            ),
+          ),
+
+          const SizedBox(
+            width: 9,
+          ),
+
+          // --------------------------------------------------------
+          // VIDHAI LOGO
+          // --------------------------------------------------------
+
+          Expanded(
+            child: Row(
+              mainAxisSize:
+                  MainAxisSize.min,
+
+              children: [
+                const Icon(
+                  Icons.eco_rounded,
+                  color: orange,
+                  size: 31,
+                ),
+
+                const SizedBox(
+                  width: 3,
+                ),
+
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+
+                    children: [
+                      const Text(
+                        "Vidhai",
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+
+                        style: TextStyle(
+                          color: orange,
+                          fontSize: 22,
+                          fontWeight:
+                              FontWeight.w800,
+                        ),
+                      ),
+
+                      Text(
+                        "Fresh from Farms",
+                        maxLines: 1,
+                        overflow:
+                            TextOverflow.ellipsis,
+
+                        style: TextStyle(
+                          color:
+                              Colors.white
+                                  .withValues(
+                            alpha: 0.6,
+                          ),
+                          fontSize: 9,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(
+            width: 4,
+          ),
+
+          // --------------------------------------------------------
+          // LOCATION
+          // --------------------------------------------------------
+
+          Row(
+            mainAxisSize:
+                MainAxisSize.min,
+
+            children: [
+              const Icon(
+                Icons.location_on_rounded,
+                color: orange,
+                size: 19,
+              ),
+
+              const SizedBox(
+                width: 2,
+              ),
+
+              Column(
+                mainAxisAlignment:
+                    MainAxisAlignment.center,
+
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: const [
+                  Text(
+                    "Coimbatore",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
+                  ),
+
+                  Text(
+                    "Tamil Nadu",
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 8,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            width: 7,
+          ),
+
+          // --------------------------------------------------------
+          // NOTIFICATION
+          // --------------------------------------------------------
+
+          Stack(
+            children: [
+              const Icon(
+                Icons
+                    .notifications_none_rounded,
+                color: Colors.white,
+                size: 27,
+              ),
+
+              Positioned(
+                right: 1,
+                top: 0,
+
+                child: Container(
+                  width: 7,
+                  height: 7,
+
+                  decoration:
+                      const BoxDecoration(
+                    color: orange,
+                    shape:
+                        BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(
+            width: 8,
+          ),
+
+          // --------------------------------------------------------
+          // PROFILE
+          // --------------------------------------------------------
+
+          Container(
+            width: 40,
+            height: 40,
+
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+
+              border: Border.all(
+                color: orange,
+                width: 1.5,
+              ),
+            ),
+
+            child: const CircleAvatar(
+              backgroundColor:
+                  Color(0xFF30352F),
+
+              child: Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 23,
+              ),
+            ),
+          ),
+        ],
       ),
-      hintText: "Search vegetables, fruits...",
-      hintStyle: TextStyle(
-        color: Colors.white54,
-      ),
-    ),
-  ),
-),
+    );
+  }
 
-const SizedBox(height: 30),
-const Text(
-  "Categories",
-  style: TextStyle(
-    color: Colors.white,
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-  ),
-),
+  // ============================================================
+  // HAMBURGER MENU
+  // ============================================================
 
-const SizedBox(height: 18),
+  void _showMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: card,
+      isScrollControlled: true,
 
-Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-
-    _categoryItem(
-      Icons.eco_rounded,
-      "Vegetables",
-    ),
-
-    _categoryItem(
-      Icons.apple_rounded,
-      "Fruits",
-    ),
-
-    _categoryItem(
-      Icons.grass_rounded,
-      "Grains",
-    ),
-
-    _categoryItem(
-      Icons.spa_rounded,
-      "Spices",
-    ),
-  ],
-),
-
-const SizedBox(height: 32),
-const Text(
-  "Featured Products",
-  style: TextStyle(
-    color: Colors.white,
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-  ),
-),
-
-const SizedBox(height: 18),
-
-SizedBox(
-  height: 240,
-  child: ListView(
-    scrollDirection: Axis.horizontal,
-    children: [
-
-      _productCard(
-        emoji: "🥬",
-        name: "Fresh Tomato",
-        price: "₹28 / kg",
-      ),
-
-      const SizedBox(width: 16),
-
-      _productCard(
-        emoji: "🌽",
-        name: "Sweet Corn",
-        price: "₹42 / kg",
-      ),
-
-      const SizedBox(width: 16),
-
-      _productCard(
-        emoji: "🥭",
-        name: "Organic Mango",
-        price: "₹120 / kg",
-      ),
-
-    ],
-  ),
-),
-
-const SizedBox(height: 30),
-const Text(
-  "🔥 Today's Deals",
-  style: TextStyle(
-    color: Colors.white,
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-  ),
-),
-
-const SizedBox(height: 18),
-
-Container(
-  width: double.infinity,
-  padding: const EdgeInsets.all(18),
-  decoration: BoxDecoration(
-    color: const Color(0xFF181818),
-    borderRadius: BorderRadius.circular(22),
-    border: Border.all(
-      color: const Color(0xFFFF9800)
-          .withValues(alpha: 0.20),
-    ),
-  ),
-  child: Row(
-    children: [
-
-      Container(
-        width: 90,
-        height: 90,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFF9800)
-              .withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(18),
+      shape:
+          const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(
+          top: Radius.circular(25),
         ),
-        child: const Center(
-          child: Text(
-            "🥭",
-            style: TextStyle(fontSize: 48),
+      ),
+
+      builder: (menuContext) {
+        final screenHeight =
+            MediaQuery.of(
+          menuContext,
+        ).size.height;
+
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight:
+                  screenHeight * 0.82,
+            ),
+
+            child: SingleChildScrollView(
+              physics:
+                  const BouncingScrollPhysics(),
+
+              child: Padding(
+                padding:
+                    const EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  20,
+                ),
+
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min,
+
+                  children: [
+                    // ==================================================
+                    // HANDLE
+                    // ==================================================
+
+                    Container(
+                      width: 45,
+                      height: 4,
+
+                      decoration:
+                          BoxDecoration(
+                        color:
+                            Colors.white24,
+
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          10,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 20,
+                    ),
+
+                    // ==================================================
+                    // TITLE
+                    // ==================================================
+
+                    const Align(
+                      alignment:
+                          Alignment.centerLeft,
+
+                      child: Text(
+                        "Menu",
+
+                        style: TextStyle(
+                          color:
+                              Colors.white,
+                          fontSize: 21,
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 12,
+                    ),
+
+                    // ==================================================
+                    // AUCTIONS
+                    // ==================================================
+
+                    ListTile(
+                      contentPadding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 4,
+                      ),
+
+                      leading: Container(
+                        width: 42,
+                        height: 42,
+
+                        decoration:
+                            BoxDecoration(
+                          color:
+                              orange.withValues(
+                            alpha: 0.12,
+                          ),
+
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                            12,
+                          ),
+                        ),
+
+                        child: const Icon(
+                          Icons.gavel_rounded,
+                          color: orange,
+                          size: 22,
+                        ),
+                      ),
+
+                      title: const Text(
+                        "Auctions",
+
+                        style: TextStyle(
+                          color:
+                              Colors.white,
+                          fontSize: 15,
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                      ),
+
+                      subtitle:
+                          const Text(
+                        "Bid on fresh products",
+
+                        style: TextStyle(
+                          color:
+                              Colors.white38,
+                          fontSize: 10,
+                        ),
+                      ),
+
+                      trailing:
+                          const Icon(
+                        Icons
+                            .arrow_forward_ios_rounded,
+                        color:
+                            Colors.white30,
+                        size: 15,
+                      ),
+
+                      onTap: () {
+                        Navigator.pop(
+                          menuContext,
+                        );
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const BuyerAuctionScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    // ==================================================
+                    // CHAT
+                    // ==================================================
+
+                    _menuItem(
+                      Icons
+                          .chat_bubble_outline_rounded,
+                      "Chat with Farmers",
+                    ),
+
+                    // ==================================================
+                    // FAVORITES
+                    // ==================================================
+
+                    _menuItem(
+                      Icons
+                          .favorite_border_rounded,
+                      "Favorites",
+                    ),
+
+                    // ==================================================
+                    // TODAY'S DEALS
+                    // ==================================================
+
+                    _menuItem(
+                      Icons
+                          .local_offer_outlined,
+                      "Today's Deals",
+                    ),
+
+                    // ==================================================
+                    // LOCATION
+                    // ==================================================
+
+                    _menuItem(
+                      Icons
+                          .location_on_outlined,
+                      "Change Location",
+                    ),
+
+                    // ==================================================
+                    // HELP
+                    // ==================================================
+
+                    _menuItem(
+                      Icons
+                          .help_outline_rounded,
+                      "Help & Support",
+                    ),
+
+                    // ==================================================
+                    // SETTINGS
+                    // ==================================================
+
+                    _menuItem(
+                      Icons.settings_outlined,
+                      "Settings",
+                    ),
+
+                    const SizedBox(
+                      height: 5,
+                    ),
+
+                    const Divider(
+                      color:
+                          Colors.white12,
+                      height: 20,
+                    ),
+
+                    // ==================================================
+                    // LOGOUT
+                    // ==================================================
+
+                    ListTile(
+                      contentPadding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 4,
+                      ),
+
+                      leading: Container(
+                        width: 42,
+                        height: 42,
+
+                        decoration:
+                            BoxDecoration(
+                          color:
+                              Colors.redAccent
+                                  .withValues(
+                            alpha: 0.10,
+                          ),
+
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                            12,
+                          ),
+                        ),
+
+                        child: const Icon(
+                          Icons
+                              .logout_rounded,
+                          color:
+                              Colors.redAccent,
+                          size: 22,
+                        ),
+                      ),
+
+                      title: const Text(
+                        "Logout",
+
+                        style: TextStyle(
+                          color:
+                              Colors.redAccent,
+                          fontSize: 15,
+                          fontWeight:
+                              FontWeight.w600,
+                        ),
+                      ),
+
+                      subtitle:
+                          const Text(
+                        "Sign out of your account",
+
+                        style: TextStyle(
+                          color:
+                              Colors.white30,
+                          fontSize: 10,
+                        ),
+                      ),
+
+                      trailing:
+                          const Icon(
+                        Icons
+                            .arrow_forward_ios_rounded,
+                        color:
+                            Colors.white30,
+                        size: 15,
+                      ),
+
+                      onTap: () {
+                        Navigator.pop(
+                          menuContext,
+                        );
+
+                        _showLogoutDialog();
+                      },
+                    ),
+
+                    const SizedBox(
+                      height: 5,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // MENU ITEM
+  // ============================================================
+
+  Widget _menuItem(
+    IconData icon,
+    String title,
+  ) {
+    return ListTile(
+      contentPadding:
+          const EdgeInsets.symmetric(
+        horizontal: 4,
+      ),
+
+      leading: Container(
+        width: 42,
+        height: 42,
+
+        decoration: BoxDecoration(
+          color: orange.withValues(
+            alpha: 0.12,
+          ),
+
+          borderRadius:
+              BorderRadius.circular(
+            12,
+          ),
+        ),
+
+        child: Icon(
+          icon,
+          color: orange,
+          size: 22,
+        ),
+      ),
+
+      title: Text(
+        title,
+
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+          fontWeight:
+              FontWeight.w600,
+        ),
+      ),
+
+      trailing: const Icon(
+        Icons.arrow_forward_ios_rounded,
+        color: Colors.white30,
+        size: 15,
+      ),
+
+      onTap: () {
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  // ============================================================
+  // LOGOUT DIALOG
+  // ============================================================
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: card,
+
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+              20,
+            ),
+          ),
+
+          title: const Text(
+            "Logout?",
+
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 19,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+
+          content: const Text(
+            "Are you sure you want to logout from Vidhai?",
+
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                );
+              },
+
+              child: const Text(
+                "Cancel",
+
+                style: TextStyle(
+                  color:
+                      Colors.white54,
+                ),
+              ),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                );
+
+                _logout();
+              },
+
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    Colors.redAccent,
+                foregroundColor:
+                    Colors.white,
+                elevation: 0,
+
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                    10,
+                  ),
+                ),
+              ),
+
+              child:
+                  const Text(
+                "Logout",
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance
+          .signOut();
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+
+        MaterialPageRoute(
+          builder: (_) =>
+              const RoleScreen(),
+        ),
+
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(
+          content: const Text(
+            "Unable to logout. Please try again.",
+          ),
+
+          backgroundColor: card,
+
+          behavior:
+              SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // SEARCH BAR
+  // ============================================================
+
+  Widget _buildSearchBar() {
+    return Container(
+      height: 58,
+
+      decoration:
+          BoxDecoration(
+        color: card,
+
+        borderRadius:
+            BorderRadius.circular(
+          20,
+        ),
+
+        border: Border.all(
+          color: orange.withValues(
+            alpha: 0.18,
           ),
         ),
       ),
 
-      const SizedBox(width: 18),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+          ),
 
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          const Icon(
+            Icons.search_rounded,
+            color: Colors.white54,
+            size: 29,
+          ),
 
-            const Text(
-              "Organic Mango",
+          const SizedBox(
+            width: 12,
+          ),
+
+          const Expanded(
+            child: TextField(
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              ),
+
+              decoration:
+                  InputDecoration(
+                border:
+                    InputBorder.none,
+
+                hintText:
+                    "Search fruits, vegetables...",
+
+                hintStyle:
+                    TextStyle(
+                  color:
+                      Colors.white54,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+
+          Container(
+            width: 46,
+            height: 46,
+
+            margin:
+                const EdgeInsets.only(
+              right: 5,
+            ),
+
+            decoration:
+                BoxDecoration(
+              color:
+                  orange.withValues(
+                alpha: 0.12,
+              ),
+
+              borderRadius:
+                  BorderRadius.circular(
+                15,
               ),
             ),
 
-            const SizedBox(height: 6),
+            child: const Icon(
+              Icons.tune_rounded,
+              color: orange,
+              size: 24,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            const Text(
-              "Freshly picked from nearby farms",
-              style: TextStyle(
-                color: Colors.white70,
+  // ============================================================
+  // HERO BANNER
+  // ============================================================
+
+  Widget _buildHeroBanner() {
+    return Container(
+      height: 220,
+      width: double.infinity,
+
+      decoration:
+          BoxDecoration(
+        borderRadius:
+            BorderRadius.circular(
+          25,
+        ),
+
+        gradient:
+            const LinearGradient(
+          colors: [
+            Color(0xFF321600),
+            Color(0xFF6A3000),
+          ],
+
+          begin:
+              Alignment.centerLeft,
+
+          end:
+              Alignment.centerRight,
+        ),
+
+        border: Border.all(
+          color: orange.withValues(
+            alpha: 0.25,
+          ),
+        ),
+      ),
+
+      child: Stack(
+        children: [
+          // ------------------------------------------------------
+          // VEGETABLE CIRCLE
+          // ------------------------------------------------------
+
+          Positioned(
+            right: -30,
+            top: 12,
+
+            child: Container(
+              width: 185,
+              height: 185,
+
+              decoration:
+                  BoxDecoration(
+                shape:
+                    BoxShape.circle,
+
+                color:
+                    orange.withValues(
+                  alpha: 0.12,
+                ),
+              ),
+
+              child:
+                  const Center(
+                child: Text(
+                  "🥕🍅🥦",
+                  style:
+                      TextStyle(
+                    fontSize: 50,
+                  ),
+                ),
               ),
             ),
+          ),
 
-            const SizedBox(height: 10),
+          // ------------------------------------------------------
+          // CONTENT
+          // ------------------------------------------------------
 
-            Row(
+          Padding(
+            padding:
+                const EdgeInsets.fromLTRB(
+              20,
+              20,
+              20,
+              16,
+            ),
+
+            child: Column(
+              mainAxisSize:
+                  MainAxisSize.min,
+
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
-
                 const Text(
-                  "₹120/kg",
-                  style: TextStyle(
-                    color: Color(0xFF017422),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                  "Eat Fresh,",
+
+                  style:
+                      TextStyle(
+                    color:
+                        Colors.white,
+                    fontSize: 26,
+                    fontWeight:
+                        FontWeight.w800,
                   ),
                 ),
 
-                const Spacer(),
+                const Text(
+                  "Stay Healthy",
 
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFFFF9800),
+                  style:
+                      TextStyle(
+                    color: orange,
+                    fontSize: 26,
+                    fontWeight:
+                        FontWeight.w800,
                   ),
-                  child: const Text(
-                    "Buy",
-                    style: TextStyle(
-                      color: Colors.white,
+                ),
+
+                const SizedBox(
+                  height: 5,
+                ),
+
+                const Text(
+                  "Handpicked produce\n"
+                  "directly from farmers 🌱",
+
+                  style:
+                      TextStyle(
+                    color:
+                        Colors.white70,
+                    fontSize: 14,
+                    height: 1.25,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 10,
+                ),
+
+                SizedBox(
+                  height: 38,
+
+                  child:
+                      ElevatedButton(
+                    onPressed: () {},
+
+                    style:
+                        ElevatedButton.styleFrom(
+                      backgroundColor:
+                          orange,
+
+                      foregroundColor:
+                          Colors.white,
+
+                      elevation: 0,
+
+                      padding:
+                          const EdgeInsets
+                              .symmetric(
+                        horizontal: 16,
+                      ),
+
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                          11,
+                        ),
+                      ),
+                    ),
+
+                    child:
+                        const Row(
+                      mainAxisSize:
+                          MainAxisSize.min,
+
+                      children: [
+                        Text(
+                          "Shop Now",
+
+                          style:
+                              TextStyle(
+                            fontWeight:
+                                FontWeight
+                                    .bold,
+                            fontSize: 13,
+                          ),
+                        ),
+
+                        SizedBox(
+                          width: 6,
+                        ),
+
+                        Icon(
+                          Icons
+                              .arrow_forward_rounded,
+                          size: 17,
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    ],
-  ),
-),
-
-const SizedBox(height: 30),
-const Text(
-  "Nearby Farmers",
-  style: TextStyle(
-    color: Colors.white,
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-  ),
-),
-
-const SizedBox(height: 18),
-
-_farmerCard(
-  "Ramesh Kumar",
-  "Tomato, Onion",
-  "2.4 km away",
-),
-
-const SizedBox(height: 14),
-
-_farmerCard(
-  "Suresh",
-  "Mango, Banana",
-  "4.8 km away",
-),
-
-const SizedBox(height: 30),
-const Text(
-  "Recent Orders",
-  style: TextStyle(
-    color: Colors.white,
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-  ),
-),
-
-const SizedBox(height: 18),
-
-Container(
-  padding: const EdgeInsets.all(18),
-  decoration: BoxDecoration(
-    color: const Color(0xFF181818),
-    borderRadius: BorderRadius.circular(20),
-    border: Border.all(
-      color: const Color(0xFFFF9800)
-          .withValues(alpha: 0.20),
-    ),
-  ),
-  child: const Row(
-    children: [
-
-      CircleAvatar(
-        radius: 26,
-        backgroundColor: Color(0x22017422),
-        child: Icon(
-          Icons.shopping_bag_outlined,
-          color: Color(0xFF017422),
-        ),
-      ),
-
-      SizedBox(width: 16),
-
-      Expanded(
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-
-            Text(
-              "Order #1258",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-
-            SizedBox(height: 5),
-
-            Text(
-              "Fresh Tomatoes • Delivered",
-              style: TextStyle(
-                color: Colors.white70,
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      Icon(
-        Icons.check_circle,
-        color: Colors.green,
-      ),
-    ],
-  ),
-),
-
-const SizedBox(height: 40),
-
-                  ],
-                ),
-              ),
-            ],
           ),
+
+          // ------------------------------------------------------
+          // SLIDER DOTS
+          // ------------------------------------------------------
+
+          Positioned(
+            right: 18,
+            top: 15,
+
+            child: Row(
+              children: [
+                _dot(true),
+                _dot(false),
+                _dot(false),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dot(
+    bool active,
+  ) {
+    return Container(
+      width:
+          active ? 23 : 8,
+      height: 8,
+
+      margin:
+          const EdgeInsets.only(
+        left: 6,
+      ),
+
+      decoration:
+          BoxDecoration(
+        color: active
+            ? Colors.white
+            : Colors.white38,
+
+        borderRadius:
+            BorderRadius.circular(
+          10,
         ),
       ),
     );
   }
-}
-Widget _categoryItem(
-  IconData icon,
-  String title,
-) {
-  return Column(
-    children: [
 
-      Container(
-        width: 70,
-        height: 70,
-        decoration: BoxDecoration(
-          color: const Color(0xFF181818),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: const Color(0xFFFF9800)
-                .withValues(alpha: 0.20),
-          ),
-        ),
-        child: Icon(
-          icon,
-          color: const Color(0xFFFF9800),
-          size: 32,
-        ),
-      ),
+  // ============================================================
+  // SECTION TITLE
+  // ============================================================
 
-      const SizedBox(height: 10),
-
-      SizedBox(
-        width: 75,
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    ],
-  );
-}
-Widget _productCard({
-  required String emoji,
-  required String name,
-  required String price,
-}) {
-  return Container(
-    width: 170,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: const Color(0xFF181818),
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(
-        color: const Color(0xFFFF9800)
-            .withValues(alpha: 0.20),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSectionTitle(
+    String title, {
+    bool showSeeAll = true,
+  }) {
+    return Row(
       children: [
-
-        Center(
-          child: Text(
-            emoji,
-            style: const TextStyle(
-              fontSize: 52,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 18),
-
-        Text(
-          name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
-        Text(
-          price,
-          style: const TextStyle(
-            color: Color(0xFF017422),
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-
-        const Spacer(),
-
-        SizedBox(
-          width: double.infinity,
-          height: 42,
-          child: ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.shopping_cart_outlined,
-              size: 18,
-            ),
-            label: const Text("Buy"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF9800),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-Widget _farmerCard(
-  String name,
-  String crops,
-  String distance,
-) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 14),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: const Color(0xFF181818),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: const Color(0xFFFF9800)
-            .withValues(alpha: 0.20),
-      ),
-    ),
-    child: Row(
-      children: [
-
-        const CircleAvatar(
-          radius: 28,
-          backgroundColor: Color(0x22017422),
-          child: Icon(
-            Icons.person,
-            color: Color(0xFF017422),
-          ),
-        ),
-
-        const SizedBox(width: 16),
-
         Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          child: Text(
+            title,
+
+            style:
+                const TextStyle(
+              color: Colors.white,
+              fontSize: 21,
+              fontWeight:
+                  FontWeight.w800,
+            ),
+          ),
+        ),
+
+        if (showSeeAll)
+          const Row(
             children: [
-
               Text(
-                name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
+                "See All",
+
+                style:
+                    TextStyle(
+                  color: orange,
+                  fontSize: 13,
+                  fontWeight:
+                      FontWeight.w600,
                 ),
               ),
 
-              const SizedBox(height: 4),
+              SizedBox(
+                width: 4,
+              ),
 
-              Text(
-                crops,
-                style: const TextStyle(
-                  color: Colors.white70,
+              Icon(
+                Icons
+                    .arrow_forward_ios_rounded,
+                color: orange,
+                size: 13,
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // CATEGORIES
+  // ============================================================
+
+  Widget _buildCategories() {
+    return SizedBox(
+      height: 130,
+
+      child:
+          ListView.separated(
+        scrollDirection:
+            Axis.horizontal,
+
+        itemCount:
+            categories.length,
+
+        separatorBuilder:
+            (_, __) =>
+                const SizedBox(
+          width: 15,
+        ),
+
+        itemBuilder:
+            (context, index) {
+          final category =
+              categories[index];
+
+          final bool selected =
+              selectedCategory ==
+                  category["value"];
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                if (selected) {
+                  selectedCategory =
+                      "All";
+                } else {
+                  selectedCategory =
+                      category[
+                          "value"];
+                }
+              });
+            },
+
+            child: SizedBox(
+              width: 90,
+
+              child: Column(
+                children: [
+                  Container(
+                    width: 78,
+                    height: 78,
+
+                    decoration:
+                        BoxDecoration(
+                      shape:
+                          BoxShape.circle,
+
+                      color: selected
+                          ? orange.withValues(
+                              alpha:
+                                  0.18,
+                            )
+                          : card,
+
+                      border:
+                          Border.all(
+                        color: selected
+                            ? orange
+                            : orange
+                                .withValues(
+                                alpha:
+                                    0.20,
+                              ),
+
+                        width: selected
+                            ? 2
+                            : 1,
+                      ),
+                    ),
+
+                    child:
+                        Center(
+                      child: Text(
+                        category[
+                                "icon"]
+                            as String,
+
+                        style:
+                            const TextStyle(
+                          fontSize:
+                              38,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 8,
+                  ),
+
+                  Text(
+                    category[
+                            "name"]
+                        as String,
+
+                    textAlign:
+                        TextAlign.center,
+
+                    maxLines: 2,
+
+                    overflow:
+                        TextOverflow
+                            .ellipsis,
+
+                    style:
+                        TextStyle(
+                      color: selected
+                          ? orange
+                          : Colors
+                              .white,
+
+                      fontSize: 11,
+
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ============================================================
+  // PRODUCT LIST
+  // ============================================================
+
+  Widget _buildProductList(
+    List<ProductModel> products,
+  ) {
+    return SizedBox(
+      height: 320,
+
+      child:
+          ListView.separated(
+        scrollDirection:
+            Axis.horizontal,
+
+        itemCount:
+            products.length,
+
+        separatorBuilder:
+            (_, __) =>
+                const SizedBox(
+          width: 14,
+        ),
+
+        itemBuilder:
+            (context, index) {
+          return _buildProductCard(
+            products[index],
+          );
+        },
+      ),
+    );
+  }
+
+  // ============================================================
+  // PRODUCT CARD
+  // ============================================================
+
+  Widget _buildProductCard(
+    ProductModel product,
+  ) {
+    return Container(
+      width: 225,
+
+      decoration:
+          BoxDecoration(
+        color: card,
+
+        borderRadius:
+            BorderRadius.circular(
+          20,
+        ),
+
+        border: Border.all(
+          color:
+              Colors.white.withValues(
+            alpha: 0.08,
+          ),
+        ),
+      ),
+
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+
+        children: [
+          // ------------------------------------------------------
+          // IMAGE
+          // ------------------------------------------------------
+
+          Stack(
+            children: [
+              Container(
+                height: 140,
+                width:
+                    double.infinity,
+
+                decoration:
+                    BoxDecoration(
+                  borderRadius:
+                      const BorderRadius
+                          .vertical(
+                    top:
+                        Radius.circular(
+                      20,
+                    ),
+                  ),
+
+                  gradient:
+                      LinearGradient(
+                    colors: [
+                      orange.withValues(
+                        alpha:
+                            0.20,
+                      ),
+
+                      const Color(
+                        0xFF242424,
+                      ),
+                    ],
+                  ),
+                ),
+
+                child:
+                    _buildProductImage(
+                  product,
                 ),
               ),
 
-              const SizedBox(height: 6),
+              // TAG
 
-              Text(
-                distance,
-                style: const TextStyle(
-                  color: Color(0xFF017422),
+              Positioned(
+                left: 10,
+                top: 10,
+
+                child: Container(
+                  padding:
+                      const EdgeInsets
+                          .symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+
+                  decoration:
+                      BoxDecoration(
+                    color: orange,
+
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      7,
+                    ),
+                  ),
+
+                  child:
+                      Text(
+                    _getProductTag(
+                      product,
+                    ),
+
+                    style:
+                        const TextStyle(
+                      color:
+                          Colors.white,
+                      fontSize: 9,
+                      fontWeight:
+                          FontWeight
+                              .bold,
+                    ),
+                  ),
+                ),
+              ),
+
+              // FAVORITE
+
+              Positioned(
+                right: 10,
+                top: 10,
+
+                child: Container(
+                  width: 35,
+                  height: 35,
+
+                  decoration:
+                      BoxDecoration(
+                    color: Colors.black
+                        .withValues(
+                      alpha: 0.45,
+                    ),
+
+                    shape:
+                        BoxShape.circle,
+                  ),
+
+                  child:
+                      const Icon(
+                    Icons
+                        .favorite_border_rounded,
+                    color:
+                        Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
           ),
+
+          // ------------------------------------------------------
+          // DETAILS
+          // ------------------------------------------------------
+
+          Padding(
+            padding:
+                const EdgeInsets
+                    .fromLTRB(
+              12,
+              10,
+              10,
+              10,
+            ),
+
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+
+              children: [
+                Text(
+                  product.name,
+
+                  maxLines: 1,
+
+                  overflow:
+                      TextOverflow
+                          .ellipsis,
+
+                  style:
+                      const TextStyle(
+                    color:
+                        Colors.white,
+                    fontSize: 16,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 3,
+                ),
+
+                Text(
+                  _formatPrice(
+                    product.price,
+                    product.unit,
+                  ),
+
+                  style:
+                      const TextStyle(
+                    color: orange,
+                    fontSize: 16,
+                    fontWeight:
+                        FontWeight.w800,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 5,
+                ),
+
+                Row(
+                  children: [
+                    const Icon(
+                      Icons
+                          .location_on_rounded,
+                      color:
+                          Colors.white54,
+                      size: 14,
+                    ),
+
+                    const SizedBox(
+                      width: 3,
+                    ),
+
+                    Expanded(
+                      child: Text(
+                        product.location
+                                .isEmpty
+                            ? "Coimbatore"
+                            : product
+                                .location,
+
+                        maxLines: 1,
+
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white54,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(
+                  height: 4,
+                ),
+
+                Row(
+                  children: [
+                    const Icon(
+                      Icons
+                          .person_outline,
+                      color:
+                          Colors.white54,
+                      size: 14,
+                    ),
+
+                    const SizedBox(
+                      width: 3,
+                    ),
+
+                    Expanded(
+                      child:
+                          Text(
+                        product
+                            .farmerName,
+
+                        maxLines: 1,
+
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white60,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(
+                  height: 5,
+                ),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child:
+                          Text(
+                        "Available: "
+                        "${product.quantity} "
+                        "${product.unit}",
+
+                        maxLines: 1,
+
+                        overflow:
+                            TextOverflow
+                                .ellipsis,
+
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white54,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+
+                    Container(
+                      width: 38,
+                      height: 38,
+
+                      decoration:
+                          const BoxDecoration(
+                        color: orange,
+                        shape:
+                            BoxShape.circle,
+                      ),
+
+                      child:
+                          const Icon(
+                        Icons
+                            .add_rounded,
+                        color:
+                            Colors.white,
+                        size: 25,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // PRODUCT IMAGE
+  // ============================================================
+
+  Widget _buildProductImage(
+    ProductModel product,
+  ) {
+    if (product.image.isNotEmpty) {
+      return ClipRRect(
+        borderRadius:
+            const BorderRadius
+                .vertical(
+          top:
+              Radius.circular(
+            20,
+          ),
         ),
 
-        ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF9800),
-          ),
-          child: const Text(
-            "View",
-            style: TextStyle(color: Colors.white),
+        child:
+            Image.network(
+          product.image,
+
+          width:
+              double.infinity,
+
+          height: 140,
+
+          fit: BoxFit.cover,
+
+          errorBuilder:
+              (
+            context,
+            error,
+            stackTrace,
+          ) {
+            return _emojiImage(
+              product.name,
+            );
+          },
+        ),
+      );
+    }
+
+    return _emojiImage(
+      product.name,
+    );
+  }
+
+  // ============================================================
+  // EMOJI FALLBACK
+  // ============================================================
+
+  Widget _emojiImage(
+    String name,
+  ) {
+    return Center(
+      child: Text(
+        _getEmoji(name),
+
+        style:
+            const TextStyle(
+          fontSize: 70,
+        ),
+      ),
+    );
+  }
+
+  String _getEmoji(
+    String name,
+  ) {
+    final value =
+        name.toLowerCase();
+
+    if (value.contains("tomato")) {
+      return "🍅";
+    }
+
+    if (value.contains("potato")) {
+      return "🥔";
+    }
+
+    if (value.contains("onion")) {
+      return "🧅";
+    }
+
+    if (value.contains("carrot")) {
+      return "🥕";
+    }
+
+    if (value.contains("bean")) {
+      return "🫛";
+    }
+
+    if (value.contains("chilli") ||
+        value.contains("chili")) {
+      return "🌶️";
+    }
+
+    if (value.contains("cabbage")) {
+      return "🥬";
+    }
+
+    if (value.contains("cauliflower")) {
+      return "🥦";
+    }
+
+    if (value.contains("brinjal") ||
+        value.contains("eggplant")) {
+      return "🍆";
+    }
+
+    if (value.contains("banana")) {
+      return "🍌";
+    }
+
+    if (value.contains("mango")) {
+      return "🥭";
+    }
+
+    if (value.contains("apple")) {
+      return "🍎";
+    }
+
+    if (value.contains("orange")) {
+      return "🍊";
+    }
+
+    if (value.contains("coconut")) {
+      return "🥥";
+    }
+
+    if (value.contains("rice") ||
+        value.contains("wheat")) {
+      return "🌾";
+    }
+
+    if (value.contains("groundnut")) {
+      return "🥜";
+    }
+
+    if (value.contains("cotton")) {
+      return "🌱";
+    }
+
+    if (value.contains("sugarcane")) {
+      return "🌿";
+    }
+
+    return "🌱";
+  }
+
+  // ============================================================
+  // PRICE
+  // ============================================================
+
+  String _formatPrice(
+    double price,
+    String unit,
+  ) {
+    final String formatted =
+        price % 1 == 0
+            ? price.toStringAsFixed(0)
+            : price.toStringAsFixed(2);
+
+    return "₹$formatted / $unit";
+  }
+
+  // ============================================================
+  // PRODUCT TAG
+  // ============================================================
+
+  String _getProductTag(
+    ProductModel product,
+  ) {
+    if (product.organic) {
+      return "ORGANIC";
+    }
+
+    return "FRESH";
+  }
+
+  // ============================================================
+  // CATEGORY MATCH
+  // ============================================================
+
+  bool _categoryMatches(
+    String productCategory,
+    String selected,
+  ) {
+    final product =
+        productCategory.toLowerCase();
+
+    final target =
+        selected.toLowerCase();
+
+    if (product == target) {
+      return true;
+    }
+
+    if (target == "grains" &&
+        (product.contains("grain") ||
+            product.contains("pulse"))) {
+      return true;
+    }
+
+    if (target == "vegetable" &&
+        product.contains("vegetable")) {
+      return true;
+    }
+
+    if (target == "fruit" &&
+        product.contains("fruit")) {
+      return true;
+    }
+
+    if (target == "spice" &&
+        product.contains("spice")) {
+      return true;
+    }
+
+    if (target == "oil seed" &&
+        (product.contains("oil") ||
+            product.contains("seed"))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // ============================================================
+  // EMPTY PRODUCTS
+  // ============================================================
+
+  Widget _buildEmptyProducts() {
+    return Container(
+      width: double.infinity,
+
+      padding:
+          const EdgeInsets.symmetric(
+        vertical: 40,
+        horizontal: 20,
+      ),
+
+      decoration:
+          BoxDecoration(
+        color: card,
+
+        borderRadius:
+            BorderRadius.circular(
+          20,
+        ),
+
+        border: Border.all(
+          color:
+              Colors.white.withValues(
+            alpha: 0.06,
           ),
         ),
-      ],
-    ),
-  );
+      ),
+
+      child: Column(
+        children: [
+          const Icon(
+            Icons
+                .inventory_2_outlined,
+            color:
+                Colors.white30,
+            size: 48,
+          ),
+
+          const SizedBox(
+            height: 12,
+          ),
+
+          Text(
+            selectedCategory == "All"
+                ? "No fresh products available"
+                : "No products in this category",
+
+            style:
+                const TextStyle(
+              color:
+                  Colors.white70,
+              fontSize: 16,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(
+            height: 6,
+          ),
+
+          Text(
+            selectedCategory == "All"
+                ? "Farmers haven't listed any available products yet."
+                : "Try selecting another category.",
+
+            textAlign:
+                TextAlign.center,
+
+            style:
+                const TextStyle(
+              color:
+                  Colors.white38,
+              fontSize: 12,
+            ),
+          ),
+
+          if (selectedCategory !=
+              "All") ...[
+            const SizedBox(
+              height: 12,
+            ),
+
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  selectedCategory =
+                      "All";
+                });
+              },
+
+              child:
+                  const Text(
+                "View All Products",
+
+                style:
+                    TextStyle(
+                  color: orange,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  Widget _buildErrorState(
+    String error,
+  ) {
+    return Center(
+      child: Padding(
+        padding:
+            const EdgeInsets.all(
+          25,
+        ),
+
+        child: Column(
+          mainAxisAlignment:
+              MainAxisAlignment.center,
+
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: orange,
+              size: 50,
+            ),
+
+            const SizedBox(
+              height: 15,
+            ),
+
+            const Text(
+              "Unable to load products",
+
+              style:
+                  TextStyle(
+                color:
+                    Colors.white,
+                fontSize: 18,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(
+              height: 8,
+            ),
+
+            Text(
+              error,
+
+              textAlign:
+                  TextAlign.center,
+
+              style:
+                  const TextStyle(
+                color:
+                    Colors.white54,
+                fontSize: 12,
+              ),
+            ),
+
+            const SizedBox(
+              height: 20,
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                setState(() {});
+              },
+
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    orange,
+
+                foregroundColor:
+                    Colors.white,
+              ),
+
+              child:
+                  const Text(
+                "Retry",
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // DELIVERY BANNER
+  // ============================================================
+
+  Widget _buildDeliveryBanner() {
+    return Container(
+      height: 88,
+      width: double.infinity,
+
+      decoration:
+          BoxDecoration(
+        borderRadius:
+            BorderRadius.circular(
+          20,
+        ),
+
+        gradient:
+            LinearGradient(
+          colors: [
+            const Color(
+              0xFF3A1D00,
+            ),
+
+            orange.withValues(
+              alpha: 0.22,
+            ),
+          ],
+        ),
+
+        border: Border.all(
+          color:
+              orange.withValues(
+            alpha: 0.20,
+          ),
+        ),
+      ),
+
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 14,
+          ),
+
+          Container(
+            width: 57,
+            height: 57,
+
+            decoration:
+                const BoxDecoration(
+              color: orange,
+              shape:
+                  BoxShape.circle,
+            ),
+
+            child:
+                const Icon(
+              Icons.eco_rounded,
+              color:
+                  Colors.white,
+              size: 31,
+            ),
+          ),
+
+          const SizedBox(
+            width: 12,
+          ),
+
+          const Expanded(
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment
+                      .center,
+
+              crossAxisAlignment:
+                  CrossAxisAlignment
+                      .start,
+
+              children: [
+                Text(
+                  "Free Delivery above ₹499",
+
+                  style:
+                      TextStyle(
+                    color:
+                        Colors.white,
+                    fontSize: 14,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+
+                SizedBox(
+                  height: 4,
+                ),
+
+                Text(
+                  "Support farmers. Eat fresh.",
+
+                  style:
+                      TextStyle(
+                    color:
+                        Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Text(
+            "🛵",
+
+            style:
+                TextStyle(
+              fontSize: 38,
+            ),
+          ),
+
+          const SizedBox(
+            width: 12,
+          ),
+        ],
+      ),
+    );
+  }
 }

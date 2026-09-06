@@ -1,146 +1,517 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
-import '../screens/auction_screen.dart';
+
+// ============================================================
+// FARMER SCREENS
+// ============================================================
+
 import '../screens/home_screen.dart';
-import '../screens/market_screen.dart';
-import '../screens/profile_screen.dart';
 import '../screens/sell_screen.dart';
+import '../screens/farmer_orders_screen.dart';
+import '../screens/farmer_chats_screen.dart';
+import '../screens/auction_screen.dart';
+
+// ============================================================
+// FARMER BOTTOM NAVIGATION
+// ============================================================
 
 class BottomNavScreen extends StatefulWidget {
-  const BottomNavScreen({super.key});
+  const BottomNavScreen({
+    super.key,
+  });
 
   @override
-  State<BottomNavScreen> createState() => _BottomNavScreenState();
+  State<BottomNavScreen> createState() =>
+      _BottomNavScreenState();
 }
 
-class _BottomNavScreenState extends State<BottomNavScreen> {
+class _BottomNavScreenState
+    extends State<BottomNavScreen> {
+
+  // ============================================================
+  // SELECTED TAB
+  // ============================================================
+
   int _selectedIndex = 0;
 
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color background =
+      Color(0xFF080A09);
+
+  static const Color navBackground =
+      Color(0xFF101211);
+
+  static const Color inactive =
+      Color(0xFF8A908B);
+
+  static const Color borderColor =
+      Color(0xFF292E2A);
+
+  // ============================================================
+  // PAGES
+  // ============================================================
+
+  // 0 → Home
+  // 1 → Products
+  // 2 → Orders
+  // 3 → Auction
+  // 4 → Messages
+  //
+  // IMPORTANT:
+  // Profile is NOT included here.
+  //
+  // Products uses a separate SellScreen navigation.
+  // ============================================================
+
   final List<Widget> _pages = const [
+    // INDEX 0
     HomeScreen(),
-    MarketScreen(),
-    SellScreen(),
+
+    // INDEX 1
+    // Products opens SellScreen separately.
+    SizedBox(),
+
+    // INDEX 2
+    FarmerOrdersScreen(),
+
+    // INDEX 3
     AuctionScreen(),
-    ProfileScreen(),
+
+    // INDEX 4
+    FarmerChatsScreen(),
   ];
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
+      backgroundColor: background,
+
+      // ========================================================
+      // PAGE CONTENT
+      // ========================================================
 
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
       ),
 
-      floatingActionButton: FloatingActionButton(
-        heroTag: "sell",
-        elevation: 10,
-        backgroundColor: AppColors.primary,
-        shape: const CircleBorder(),
-        onPressed: () {
-          setState(() {
-            _selectedIndex = 2;
-          });
-        },
-        child: const Icon(
-          Icons.agriculture_rounded,
-          color: Colors.white,
-          size: 30,
+      // ========================================================
+      // BOTTOM NAVIGATION
+      // ========================================================
+
+      bottomNavigationBar:
+          _buildBottomNavigation(),
+    );
+  }
+
+  // ============================================================
+  // BOTTOM NAVIGATION
+  // ============================================================
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      decoration: BoxDecoration(
+        color: navBackground,
+
+        border: const Border(
+          top: BorderSide(
+            color: borderColor,
+            width: 1,
+          ),
         ),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(100),
+            blurRadius: 18,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
 
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked,
+      child: SafeArea(
+        top: false,
 
-      bottomNavigationBar: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(25),
-          topRight: Radius.circular(25),
-        ),
-        child: BottomAppBar(
-          color: AppColors.card,
-          elevation: 15,
-          shape: const CircularNotchedRectangle(),
-          notchMargin: 8,
+        child: SizedBox(
+          height: 72,
 
-          child: SizedBox(
-            height: 72,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
+          child: Row(
+            children: [
 
-                _buildNavItem(
+              // =================================================
+              // HOME
+              // =================================================
+
+              Expanded(
+                child: _buildNavItem(
                   icon: Icons.home_rounded,
-                  label: "Home",
+                  label: 'Home',
                   index: 0,
                 ),
+              ),
 
-                _buildNavItem(
-                  icon: Icons.storefront_rounded,
-                  label: "Market",
+              // =================================================
+              // PRODUCTS
+              // =================================================
+
+              Expanded(
+                child: _buildNavItem(
+                  icon: Icons.agriculture_rounded,
+                  label: 'Products',
                   index: 1,
                 ),
+              ),
 
-                const SizedBox(width: 48),
+              // =================================================
+              // ORDERS
+              // =================================================
 
-                _buildNavItem(
+              Expanded(
+                child: _buildOrdersNavItem(),
+              ),
+
+              // =================================================
+              // AUCTION
+              // =================================================
+
+              Expanded(
+                child: _buildNavItem(
                   icon: Icons.gavel_rounded,
-                  label: "Auction",
+                  label: 'Auction',
                   index: 3,
                 ),
+              ),
 
-                _buildNavItem(
-                  icon: Icons.person_rounded,
-                  label: "Profile",
-                  index: 4,
-                ),
-              ],
-            ),
+              // =================================================
+              // MESSAGES
+              // =================================================
+
+              Expanded(
+                child: _buildMessagesNavItem(),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  // ============================================================
+  // ORDERS NAV ITEM
+  // ============================================================
+
+  Widget _buildOrdersNavItem() {
+    final User? currentUser =
+        FirebaseAuth.instance.currentUser;
+
+    // ==========================================================
+    // USER NOT LOGGED IN
+    // ==========================================================
+
+    if (currentUser == null) {
+      return _buildNavItem(
+        icon: Icons.assignment_rounded,
+        label: 'Orders',
+        index: 2,
+        badge: 0,
+      );
+    }
+
+    // ==========================================================
+    // LIVE FIRESTORE ORDER COUNT
+    // ==========================================================
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where(
+            'farmerId',
+            isEqualTo: currentUser.uid,
+          )
+          .where(
+            'orderStatus',
+            isEqualTo: 'Placed',
+          )
+          .snapshots(),
+
+      builder: (
+        context,
+        snapshot,
+      ) {
+        int orderCount = 0;
+
+        // ======================================================
+        // COUNT ORDERS
+        // ======================================================
+
+        if (snapshot.hasData) {
+          orderCount =
+              snapshot.data!.docs.length;
+        }
+
+        // ======================================================
+        // ORDERS NAV ITEM
+        // ======================================================
+
+        return _buildNavItem(
+          icon: Icons.assignment_rounded,
+          label: 'Orders',
+          index: 2,
+          badge: orderCount,
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // MESSAGES NAV ITEM
+  // ============================================================
+
+  Widget _buildMessagesNavItem() {
+    final User? currentUser =
+        FirebaseAuth.instance.currentUser;
+
+    // ==========================================================
+    // USER NOT LOGGED IN
+    // ==========================================================
+
+    if (currentUser == null) {
+      return _buildNavItem(
+        icon: Icons.chat_bubble_outline_rounded,
+        label: 'Messages',
+        index: 4,
+        badge: 0,
+      );
+    }
+
+    // ==========================================================
+    // MESSAGES
+    //
+    // Currently no hardcoded notification count.
+    //
+    // Later we can connect this badge to Firestore unread
+    // messages.
+    // ==========================================================
+
+    return _buildNavItem(
+      icon: Icons.chat_bubble_outline_rounded,
+      label: 'Messages',
+      index: 4,
+      badge: 0,
+    );
+  }
+
+  // ============================================================
+  // NAVIGATION ITEM
+  // ============================================================
+
   Widget _buildNavItem({
     required IconData icon,
     required String label,
     required int index,
+    int badge = 0,
   }) {
-    final bool selected = _selectedIndex == index;
+    final bool selected =
+        _selectedIndex == index;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius:
+          BorderRadius.circular(20),
+
+      // ========================================================
+      // TAP
+      // ========================================================
+
       onTap: () {
+
+        // ======================================================
+        // PRODUCTS → SELL SCREEN
+        // ======================================================
+
+        if (index == 1) {
+          Navigator.push(
+            context,
+
+            MaterialPageRoute(
+              builder: (_) =>
+                  const SellScreen(),
+            ),
+          );
+
+          return;
+        }
+
+        // ======================================================
+        // NORMAL NAVIGATION
+        // ======================================================
+
         setState(() {
           _selectedIndex = index;
         });
       },
+
+      splashColor:
+          AppColors.primary.withAlpha(20),
+
+      highlightColor:
+          AppColors.primary.withAlpha(10),
+
       child: SizedBox(
-        width: 65,
+        height: 72,
+
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment:
+              MainAxisAlignment.center,
+
           children: [
-            Icon(
-              icon,
-              size: 26,
-              color: selected
-                  ? AppColors.primary
-                  : Colors.white54,
+
+            // ==================================================
+            // ICON + BADGE
+            // ==================================================
+
+            Stack(
+              clipBehavior:
+                  Clip.none,
+
+              children: [
+
+                // =================================================
+                // ICON
+                // =================================================
+
+                Icon(
+                  icon,
+                  size: 27,
+                  color: selected
+                      ? AppColors.primary
+                      : inactive,
+                ),
+
+                // =================================================
+                // RED BADGE
+                // =================================================
+
+                if (badge > 0)
+                  Positioned(
+                    right: -9,
+                    top: -8,
+
+                    child: Container(
+                      constraints:
+                          const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+
+                      alignment:
+                          Alignment.center,
+
+                      padding:
+                          const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+
+                      decoration:
+                          const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+
+                      child: Text(
+                        badge > 99
+                            ? '99+'
+                            : '$badge',
+
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.white,
+                          fontSize: 10,
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 4),
+
+            const SizedBox(
+              height: 5,
+            ),
+
+            // ==================================================
+            // LABEL
+            // ==================================================
+
             Text(
               label,
-              style: TextStyle(
+
+              maxLines: 1,
+
+              overflow:
+                  TextOverflow.ellipsis,
+
+              style:
+                  TextStyle(
                 fontSize: 11,
+
                 fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected
-                    ? AppColors.primary
-                    : Colors.white54,
+                    selected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+
+                color:
+                    selected
+                        ? AppColors.primary
+                        : inactive,
+              ),
+            ),
+
+            const SizedBox(
+              height: 4,
+            ),
+
+            // ==================================================
+            // ACTIVE GREEN LINE
+            // ==================================================
+
+            AnimatedContainer(
+              duration:
+                  const Duration(
+                milliseconds: 180,
+              ),
+
+              curve:
+                  Curves.easeOut,
+
+              width:
+                  selected
+                      ? 34
+                      : 0,
+
+              height: 3,
+
+              decoration:
+                  BoxDecoration(
+                color:
+                    AppColors.primary,
+
+                borderRadius:
+                    BorderRadius.circular(
+                  20,
+                ),
               ),
             ),
           ],

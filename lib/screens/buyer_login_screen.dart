@@ -1,8 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../navigation/buyer_bottom_nav.dart';
 
-import '../constants/colors.dart';
+import 'buyer_registration_screen.dart';
+import 'main_screen.dart';
 
 class BuyerLoginScreen extends StatefulWidget {
   const BuyerLoginScreen({super.key});
@@ -14,290 +15,423 @@ class BuyerLoginScreen extends StatefulWidget {
 
 class _BuyerLoginScreenState
     extends State<BuyerLoginScreen> {
-  final TextEditingController usernameController =
+  final _formKey = GlobalKey<FormState>();
+
+  final _usernameController =
       TextEditingController();
 
-  final TextEditingController passwordController =
+  final _passwordController =
       TextEditingController();
 
-  bool obscurePassword = true;
+  bool _loading = false;
+  bool _hidePassword = true;
+
+  static const Color orange =
+      Color(0xFFFF9800);
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loginBuyer() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final username =
+        _usernameController.text
+            .trim()
+            .toLowerCase();
+
+    final password =
+        _passwordController.text;
+
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      final result =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where(
+                'username',
+                isEqualTo: username,
+              )
+              .where(
+                'role',
+                isEqualTo: 'buyer',
+              )
+              .limit(1)
+              .get();
+
+      if (result.docs.isEmpty) {
+        throw Exception(
+          'Username not found.',
+        );
+      }
+
+      final data =
+          result.docs.first.data();
+
+      final email =
+          data['email']?.toString() ??
+              '$username@vidhai.app';
+
+      await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              const MainScreen(),
+        ),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      String message =
+          'Login failed.';
+
+      if (e.code ==
+              'invalid-credential' ||
+          e.code ==
+              'wrong-password' ||
+          e.code ==
+              'user-not-found') {
+        message =
+            'Invalid username or password.';
+      } else if (e.code ==
+          'too-many-requests') {
+        message =
+            'Too many attempts. Try again later.';
+      } else if (e.code ==
+          'network-request-failed') {
+        message =
+            'Check your internet connection.';
+      }
+
+      _showMessage(message);
+    } catch (e) {
+      _showMessage(
+        e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            Colors.red.shade700,
+        behavior:
+            SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 28),
+      backgroundColor:
+          const Color(0xFF080A08),
+
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding:
+              const EdgeInsets.all(24),
+
+          child: Form(
+            key: _formKey,
+
             child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
-
-                const SizedBox(height: 25),
-
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    onPressed: () =>
-                        Navigator.pop(context),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
-                Container(
-                  width: 95,
-                  height: 95,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFFFF9800),
-                        Color(0xFFFFB300),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.orange
-                            .withValues(alpha: .35),
-                        blurRadius: 25,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.shopping_bag_rounded,
+                IconButton(
+                  onPressed: _loading
+                      ? null
+                      : () =>
+                          Navigator.pop(
+                            context,
+                          ),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
                     color: Colors.white,
-                    size: 50,
                   ),
                 ),
 
                 const SizedBox(height: 30),
 
-                Text(
-                  "Welcome Buyer",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                Text(
-                  "VIDHAI MARKET",
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 36,
-                    letterSpacing: 2,
-                  ),
-                ),
-
-                const SizedBox(height: 15),
-
-                Text(
-                  "Login using your buyer account",
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
-                ),
-
-                const SizedBox(height: 45),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .06),
-                    borderRadius:
-                        BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white12,
+                Center(
+                  child: Container(
+                    width: 82,
+                    height: 82,
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          orange.withValues(
+                        alpha: .12,
+                      ),
+                      shape:
+                          BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons
+                          .storefront_rounded,
+                      color: orange,
+                      size: 42,
                     ),
                   ),
-                  child: TextField(
-                    controller: usernameController,
-                    style: GoogleFonts.poppins(
+                ),
+
+                const SizedBox(height: 20),
+
+                const Center(
+                  child: Text(
+                    'Welcome Back',
+                    style: TextStyle(
                       color: Colors.white,
+                      fontSize: 29,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      icon: const Icon(
-                        Icons.person_outline,
-                        color: Colors.orange,
-                      ),
-                      hintText: "Username",
-                      hintStyle: GoogleFonts.poppins(
-                        color: Colors.white38,
+                  ),
+                ),
+
+                const SizedBox(height: 7),
+
+                const Center(
+                  child: Text(
+                    'Login to your Vidhai buyer account',
+                    textAlign:
+                        TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 38),
+
+                const Text(
+                  'Username',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight:
+                        FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                TextFormField(
+                  controller:
+                      _usernameController,
+                  enabled: !_loading,
+                  style:
+                      const TextStyle(
+                    color: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value == null ||
+                        value.trim().isEmpty) {
+                      return
+                          'Enter username';
+                    }
+
+                    return null;
+                  },
+                  decoration:
+                      _inputDecoration(
+                    'Enter username',
+                    Icons
+                        .person_outline_rounded,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  'Password',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight:
+                        FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                TextFormField(
+                  controller:
+                      _passwordController,
+                  enabled: !_loading,
+                  obscureText:
+                      _hidePassword,
+                  style:
+                      const TextStyle(
+                    color: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value == null ||
+                        value.isEmpty) {
+                      return
+                          'Enter password';
+                    }
+
+                    return null;
+                  },
+                  onFieldSubmitted: (_) {
+                    if (!_loading) {
+                      _loginBuyer();
+                    }
+                  },
+                  decoration:
+                      _inputDecoration(
+                    'Enter password',
+                    Icons
+                        .lock_outline_rounded,
+                    suffix:
+                        IconButton(
+                      onPressed:
+                          _loading
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _hidePassword =
+                                        !_hidePassword;
+                                  });
+                                },
+                      icon: Icon(
+                        _hidePassword
+                            ? Icons
+                                .visibility_off_outlined
+                            : Icons
+                                .visibility_outlined,
+                        color:
+                            Colors.white38,
                       ),
                     ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width:
+                      double.infinity,
+                  height: 54,
+
+                  child:
+                      ElevatedButton(
+                    onPressed:
+                        _loading
+                            ? null
+                            : _loginBuyer,
+
+                    style:
+                        ElevatedButton.styleFrom(
+                      backgroundColor:
+                          orange,
+                      foregroundColor:
+                          Colors.black,
+                      elevation: 0,
+                      shape:
+                          RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          15,
+                        ),
+                      ),
+                    ),
+
+                    child: _loading
+                        ? const SizedBox(
+                            width: 23,
+                            height: 23,
+                            child:
+                                CircularProgressIndicator(
+                              color:
+                                  Colors.black,
+                              strokeWidth:
+                                  2.5,
+                            ),
+                          )
+                        : const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
 
                 const SizedBox(height: 22),
 
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .06),
-                    borderRadius:
-                        BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white12,
-                    ),
-                  ),
-                  child: TextField(
-                    controller: passwordController,
-                    obscureText: obscurePassword,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      icon: const Icon(
-                        Icons.lock_outline,
-                        color: Colors.orange,
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Don't have an account?",
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
                       ),
-                      hintText: "Password",
-                      hintStyle: GoogleFonts.poppins(
-                        color: Colors.white38,
-                      ),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            obscurePassword =
-                                !obscurePassword;
-                          });
-                        },
-                        icon: Icon(
-                          obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.white54,
+                    ),
+
+                    TextButton(
+                      onPressed: _loading
+                          ? null
+                          : () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          const BuyerRegistrationScreen(),
+                                ),
+                              );
+                            },
+                      child: const Text(
+                        'Register',
+                        style: TextStyle(
+                          color: orange,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-
-                const SizedBox(height: 25),
-
-                const SizedBox(height: 40),
-                                SizedBox(
-                  width: double.infinity,
-                  height: 58,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFFFF9800),
-                          Color(0xFFFFB300),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.orange.withValues(alpha: .35),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (usernameController.text.trim() == "buyer" &&
-                            passwordController.text.trim() == "buyer123") {
-                          Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (_) => const BuyerBottomNav(),
-  ),
-);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              backgroundColor: Colors.red,
-                              content: Text(
-                                "Invalid Username or Password",
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Login",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.login_rounded,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                Text(
-                  "Don't have a buyer account?",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white54,
-                    fontSize: 13,
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      "/buyer-register",
-                    );
-                  },
-                  child: Text(
-                    "Register Here",
-                    style: GoogleFonts.poppins(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 35),
               ],
             ),
           ),
@@ -306,10 +440,63 @@ class _BuyerLoginScreenState
     );
   }
 
-  @override
-  void dispose() {
-    usernameController.dispose();
-    passwordController.dispose();
-    super.dispose();
+  InputDecoration _inputDecoration(
+    String hint,
+    IconData icon, {
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+
+      hintStyle:
+          const TextStyle(
+        color: Colors.white30,
+      ),
+
+      prefixIcon:
+          Icon(
+        icon,
+        color: Colors.white38,
+      ),
+
+      suffixIcon: suffix,
+
+      filled: true,
+
+      fillColor:
+          const Color(0xFF151515),
+
+      border:
+          OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(14),
+        borderSide:
+            BorderSide.none,
+      ),
+
+      enabledBorder:
+          OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(14),
+        borderSide:
+            BorderSide(
+          color:
+              Colors.white.withValues(
+            alpha: .06,
+          ),
+        ),
+      ),
+
+      focusedBorder:
+          OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(14),
+        borderSide:
+            const BorderSide(
+          color: orange,
+          width: 1.2,
+        ),
+      ),
+    );
   }
 }
