@@ -5,6 +5,8 @@ import 'add_product_screen.dart';
 
 import '../models/product_model.dart';
 import '../services/product_service.dart';
+import '../services/data_seed_service.dart';
+import '../services/language_service.dart';
 import '../widgets/product_card.dart';
 
 class SellScreen extends StatefulWidget {
@@ -21,6 +23,34 @@ class _SellScreenState
       ProductService();
 
   String _selectedFilter = "All";
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSeed();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  Future<void> _checkSeed() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await DataSeedService.ensureFarmerDataSeeded(
+        farmerUid: user.uid,
+        farmerName: user.displayName ?? 'Farmer',
+        phone: user.phoneNumber,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,13 +90,13 @@ class _SellScreenState
             color: Colors.white,
             size: 25,
           ),
-          tooltip: "Farmer Home",
+          tooltip: LanguageService.tr("Farmer Home"),
         ),
 
-        title: const Text(
-          "My Farmer Hub",
+        title: Text(
+          LanguageService.tr("My Farmer Hub"),
 
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontWeight:
                 FontWeight.bold,
@@ -83,7 +113,7 @@ class _SellScreenState
             ),
 
             tooltip:
-                "Refresh Listings",
+                LanguageService.tr("Refresh Listings"),
 
             onPressed: () {
               setState(() {});
@@ -117,10 +147,10 @@ class _SellScreenState
               // HEADER
               // ==================================================
 
-              const Text(
-                "My Products",
+              Text(
+                LanguageService.tr("My Products"),
 
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight:
@@ -312,7 +342,7 @@ class _SellScreenState
                           child:
                               _buildStatItem(
                             title:
-                                "Total",
+                                LanguageService.tr("Total"),
 
                             value:
                                 total
@@ -334,7 +364,7 @@ class _SellScreenState
                           child:
                               _buildStatItem(
                             title:
-                                "Active",
+                                LanguageService.tr("Active"),
 
                             value:
                                 active
@@ -356,7 +386,7 @@ class _SellScreenState
                           child:
                               _buildStatItem(
                             title:
-                                "Sold Out",
+                                LanguageService.tr("Sold Out"),
 
                             value:
                                 sold
@@ -455,11 +485,11 @@ class _SellScreenState
 
                         children: [
 
-                          const Text(
-                            "List Your Produce",
+                          Text(
+                            LanguageService.tr("List Your Produce"),
 
                             style:
-                                TextStyle(
+                                const TextStyle(
                               color:
                                   Colors.white,
                               fontWeight:
@@ -473,11 +503,11 @@ class _SellScreenState
                             height: 6,
                           ),
 
-                          const Text(
-                            "Reach buyers directly using AI pricing assistant.",
+                          Text(
+                            LanguageService.tr("reach_buyers_ai"),
 
                             style:
-                                TextStyle(
+                                const TextStyle(
                               color:
                                   Colors.white70,
                               fontSize: 13,
@@ -543,11 +573,11 @@ class _SellScreenState
                             ),
 
                             label:
-                                const Text(
-                              "Add New",
+                                Text(
+                              LanguageService.tr("Add New"),
 
                               style:
-                                  TextStyle(
+                                  const TextStyle(
                                 fontSize:
                                     15,
                                 fontWeight:
@@ -617,20 +647,24 @@ class _SellScreenState
 
                 children: [
 
-                  const Text(
-                    "My Listings",
-
-                    style:
-                        TextStyle(
-                      color:
-                          Colors.white,
-                      fontWeight:
-                          FontWeight.bold,
-                      fontSize: 22,
-                      letterSpacing:
-                          -0.3,
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        LanguageService.tr("My Listings"),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
                     ),
                   ),
+
+                  const SizedBox(width: 8),
 
                   Container(
                     padding:
@@ -653,6 +687,7 @@ class _SellScreenState
                     ),
 
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _filterChip("All"),
                         _filterChip(
@@ -755,7 +790,7 @@ class _SellScreenState
                           Alignment.center,
 
                       child: Text(
-                        "No $_selectedFilter products found.",
+                        "${LanguageService.tr('no')} ${LanguageService.tr(_selectedFilter)} ${LanguageService.tr('products_found')}.",
 
                         style:
                             const TextStyle(
@@ -844,28 +879,31 @@ class _SellScreenState
         Row(
           mainAxisAlignment:
               MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
 
           children: [
             Icon(
               icon,
               color: color,
-              size: 16,
+              size: 15,
             ),
 
             const SizedBox(
-              width: 6,
+              width: 4,
             ),
 
-            Text(
-              title,
-
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white70,
-                fontWeight:
-                    FontWeight.w600,
-                fontSize: 12,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ),
           ],
@@ -875,17 +913,16 @@ class _SellScreenState
           height: 8,
         ),
 
-        Text(
-          value,
-
-          style:
-              TextStyle(
-            color: color,
-            fontSize: 28,
-            fontWeight:
-                FontWeight.w800,
-            letterSpacing:
-                -0.5,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
       ],
@@ -918,7 +955,7 @@ class _SellScreenState
 
         padding:
             const EdgeInsets.symmetric(
-          horizontal: 12,
+          horizontal: 10,
           vertical: 6,
         ),
 
@@ -936,20 +973,20 @@ class _SellScreenState
           ),
         ),
 
-        child: Text(
-          filter,
-
-          style:
-              TextStyle(
-            color: selected
-                ? Colors.black
-                : Colors.white60,
-
-            fontWeight: selected
-                ? FontWeight.bold
-                : FontWeight.w500,
-
-            fontSize: 12,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            LanguageService.tr(filter),
+            maxLines: 1,
+            style: TextStyle(
+              color: selected
+                  ? Colors.black
+                  : Colors.white60,
+              fontWeight: selected
+                  ? FontWeight.bold
+                  : FontWeight.w500,
+              fontSize: 12,
+            ),
           ),
         ),
       ),
@@ -989,24 +1026,24 @@ class _SellScreenState
         ),
       ),
 
-      child: const Column(
+      child: Column(
         children: [
 
-          Icon(
+          const Icon(
             Icons.inventory_2_outlined,
             size: 48,
             color: Colors.white30,
           ),
 
-          SizedBox(
+          const SizedBox(
             height: 12,
           ),
 
           Text(
-            "No products listed yet",
+            LanguageService.tr("no_products_yet"),
 
             style:
-                TextStyle(
+                const TextStyle(
               color:
                   Colors.white70,
               fontWeight:
@@ -1015,21 +1052,58 @@ class _SellScreenState
             ),
           ),
 
-          SizedBox(
+          const SizedBox(
             height: 4,
           ),
 
           Text(
-            "Tap 'Add New' above to list your produce.",
+            LanguageService.tr("tap_add_new_intro"),
 
             textAlign:
                 TextAlign.center,
 
             style:
-                TextStyle(
+                const TextStyle(
               color:
                   Colors.white38,
               fontSize: 13,
+            ),
+          ),
+
+          const SizedBox(
+            height: 18,
+          ),
+
+          ElevatedButton.icon(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                await DataSeedService.ensureFarmerDataSeeded(
+                  farmerUid: user.uid,
+                  farmerName: user.displayName ?? 'Farmer',
+                  phone: user.phoneNumber,
+                );
+              }
+            },
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: Colors.black,
+              size: 18,
+            ),
+            label: Text(
+              LanguageService.tr('load_starter_products'),
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00E676),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],

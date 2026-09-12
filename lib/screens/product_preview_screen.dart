@@ -1409,7 +1409,7 @@ class _ProductPreviewScreenState
         location:
             widget.location,
 
-        image: "",
+        image: _getCropAsset(widget.crop),
 
         description:
             widget.description,
@@ -1786,6 +1786,30 @@ class _ProductPreviewScreenState
         ),
       ),
     );
+  }
+
+  // ============================================================
+  // CROP ASSET
+  // ============================================================
+
+  String _getCropAsset(String crop) {
+    final c = crop.trim().toLowerCase();
+    if (c.contains('banana') || c.contains('nendran')) return 'assets/products/banana.png';
+    if (c.contains('corn') || c.contains('maize')) return 'assets/products/corn.png';
+    if (c.contains('cabbage')) return 'assets/products/cabbage.png';
+    if (c.contains('brinjal') || c.contains('eggplant')) return 'assets/products/brinjal.png';
+    if (c.contains('mango') || c.contains('alphonso')) return 'assets/products/mango.png';
+    if (c.contains('spinach') || c.contains('palak')) return 'assets/products/spinach.png';
+    if (c.contains('carrot')) return 'assets/products/carrot.png';
+    if (c.contains('tomato')) return 'assets/products/tomato.png';
+    if (c.contains('potato')) return 'assets/products/potato.png';
+    if (c.contains('onion')) return 'assets/products/onion.png';
+    if (c.contains('chilli') || c.contains('chili')) return 'assets/products/chilli.png';
+    if (c.contains('fruit') || c.contains('apple') || c.contains('orange')) return 'assets/products/fruits.png';
+    if (c.contains('grain') || c.contains('rice') || c.contains('wheat')) return 'assets/products/grains.png';
+    if (c.contains('dairy') || c.contains('milk')) return 'assets/products/dairy.png';
+    if (c.contains('spice') || c.contains('pepper') || c.contains('turmeric')) return 'assets/products/spices.png';
+    return 'assets/products/vegetables.png';
   }
 
   // ============================================================

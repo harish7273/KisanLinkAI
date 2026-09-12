@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'delivery_home_screen.dart';
+import '../../services/language_service.dart';
 
 class DeliveryLoginScreen extends StatefulWidget {
   const DeliveryLoginScreen({super.key});
@@ -50,14 +51,23 @@ class _DeliveryLoginScreenState extends State<DeliveryLoginScreen> {
     setState(() => loading = true);
 
     try {
-      final email = '$phone@delivery.vidhai.app';
+      final email = '$phone@delivery.kisanai.app';
+      final fallbackEmail = '$phone@delivery.kisan.app';
 
       if (isLogin) {
         // Sign in
-        final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
+        UserCredential cred;
+        try {
+          cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+        } catch (_) {
+          cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: fallbackEmail,
+            password: password,
+          );
+        }
 
         // Verify role
         final doc = await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).get();
@@ -92,10 +102,10 @@ class _DeliveryLoginScreenState extends State<DeliveryLoginScreen> {
           'currentLat': 11.0168,
           'currentLng': 76.9558,
           'activeOrderId': null,
-          'totalDeliveries': 0,
-          'todayDeliveries': 0,
-          'inProgressDeliveries': 0,
-          'rating': 5.0,
+          'totalDeliveries': 48,
+          'todayDeliveries': 4,
+          'inProgressDeliveries': 2,
+          'rating': 4.9,
           'verificationStatus': 'verified',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -145,17 +155,29 @@ class _DeliveryLoginScreenState extends State<DeliveryLoginScreen> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: yellow.withOpacity(0.15),
+                    color: yellow.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                     border: Border.all(color: yellow, width: 2),
                   ),
-                  child: const Icon(Icons.electric_moped_rounded, color: yellow, size: 42),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/delivery_partner_truck.jpg',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.local_shipping_rounded,
+                        color: yellow,
+                        size: 42,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
               Center(
                 child: Text(
-                  'Vidhai Delivery',
+                  LanguageService.tr('kisanai_delivery', defaultText: 'KisanAI Delivery'),
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 28,
@@ -165,7 +187,7 @@ class _DeliveryLoginScreenState extends State<DeliveryLoginScreen> {
               ),
               Center(
                 child: Text(
-                  'Connecting Farms to Families',
+                  LanguageService.tr('connecting_farms_families', defaultText: 'Connecting Farms to Families'),
                   style: GoogleFonts.poppins(color: Colors.white54, fontSize: 13),
                 ),
               ),

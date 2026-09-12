@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/language_service.dart';
 
 class WeatherCard extends StatelessWidget {
   final String temperature;
@@ -59,7 +60,7 @@ class WeatherCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  "Today's Weather",
+                  tr('todays_weather', defaultText: "Today's Weather"),
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 20,

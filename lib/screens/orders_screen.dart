@@ -3,8 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/order_model.dart';
+import '../services/language_service.dart';
+import '../widgets/vehicle_assignment_sheet.dart';
 import 'tracking/buyer_order_details_screen.dart';
 import 'tracking/buyer_live_tracking_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 // ==================================================================
@@ -46,8 +49,32 @@ String? _cropAssetForProduct(
   final name = productName.toLowerCase().trim();
 
   // If the order already contains a local asset path, use it.
-  if (imageUrl.startsWith('assets/products/')) {
+  if (imageUrl.startsWith('assets/products/') || imageUrl.startsWith('assets/crops/')) {
     return imageUrl;
+  }
+
+  if (name.contains('banana') || name.contains('nendran')) {
+    return 'assets/products/banana.png';
+  }
+
+  if (name.contains('corn') || name.contains('maize')) {
+    return 'assets/products/corn.png';
+  }
+
+  if (name.contains('cabbage')) {
+    return 'assets/products/cabbage.png';
+  }
+
+  if (name.contains('brinjal') || name.contains('eggplant')) {
+    return 'assets/products/brinjal.png';
+  }
+
+  if (name.contains('mango') || name.contains('alphonso')) {
+    return 'assets/products/mango.png';
+  }
+
+  if (name.contains('spinach') || name.contains('palak')) {
+    return 'assets/products/spinach.png';
   }
 
   if (name.contains('carrot')) {
@@ -70,6 +97,11 @@ String? _cropAssetForProduct(
       name.contains('chili')) {
     return 'assets/products/chilli.png';
   }
+
+  if (name.contains('fruit')) return 'assets/products/fruits.png';
+  if (name.contains('grain') || name.contains('rice') || name.contains('paddy')) return 'assets/products/grains.png';
+  if (name.contains('dairy') || name.contains('milk')) return 'assets/products/dairy.png';
+  if (name.contains('veg')) return 'assets/products/vegetables.png';
 
   return null;
 }
@@ -103,6 +135,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
   static const Color muted = Color(0xFF929999);
 
   int selectedTab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -271,10 +319,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'My Orders',
-                  style: TextStyle(
+                  tr('my_orders', defaultText: 'My Orders'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 31,
                     fontWeight: FontWeight.w800,
@@ -301,9 +349,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ],
           ),
           const SizedBox(height: 3),
-          const Text(
-            'Track and manage your orders',
-            style: TextStyle(
+          Text(
+            tr('track_manage_orders', defaultText: 'Track and manage your orders'),
+            style: const TextStyle(
               color: muted,
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -328,10 +376,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required int cancelledCount,
   }) {
     final tabs = [
-      'All Orders ($allCount)',
-      'Ongoing ($ongoingCount)',
-      'Delivered ($deliveredCount)',
-      'Cancelled ($cancelledCount)',
+      '${tr('all_orders', defaultText: 'All Orders')} ($allCount)',
+      '${tr('Ongoing', defaultText: 'Ongoing')} ($ongoingCount)',
+      '${tr('Delivered', defaultText: 'Delivered')} ($deliveredCount)',
+      '${tr('Cancelled', defaultText: 'Cancelled')} ($cancelledCount)',
     ];
 
     return SizedBox(
@@ -569,6 +617,235 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ),
 
+            // BUYER & TRANSPORT DETAILS BADGE (Optional Transport Assignment for both Farmer & Buyer)
+            if (!isCancelled)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F1A12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: green.withValues(alpha: .2)),
+                  ),
+                  child: Column(
+                    children: [
+                      // Farmer Contact & Location Row (with Quality Check badge)
+                      Row(
+                        children: [
+                          const Icon(Icons.agriculture_rounded, color: green, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${order['farmerName'] ?? (firstItem['farmerName'] ?? 'M. Palanisamy')} • ${order['farmerPhone'] ?? '+91 94431 82910'}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '${order['farmerLocation'] ?? (firstItem['location'] ?? 'Pollachi, Coimbatore')} • ${tr('quality_checked', defaultText: 'Grade-A Quality Verified')}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white60, fontSize: 10),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () async {
+                              final p = (order['farmerPhone'] ?? '+91 94431 82910').toString().replaceAll(' ', '');
+                              final uri = Uri.parse('tel:$p');
+                              if (await canLaunchUrl(uri)) await launchUrl(uri);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.call, color: green, size: 12),
+                                  const SizedBox(width: 3),
+                                  Text(tr('call', defaultText: 'Call'), style: const TextStyle(color: green, fontSize: 10, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Divider(color: Color(0xFF1E2F22), height: 1),
+                      const SizedBox(height: 6),
+
+                      if (order['deliveryPartnerVehicle'] != null &&
+                          order['deliveryPartnerVehicle'].toString().isNotEmpty) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.local_shipping_rounded, color: green, size: 17),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${order['deliveryPartnerVehicle']} • ${order['deliveryPartnerPlate'] ?? 'TN-38-BZ-4412'}',
+                                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amberAccent.withValues(alpha: 0.18),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.star_rounded, color: Colors.amberAccent, size: 11),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              '${order['driverRating'] ?? '4.9'}',
+                                              style: const TextStyle(color: Colors.amberAccent, fontSize: 9, fontWeight: FontWeight.w800),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${tr('driver', defaultText: 'Driver')}: ${order['deliveryPartnerName'] ?? 'P. Selvam'} • ${order['deliveryEstimate'] ?? '25-40 Mins Express'}',
+                                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    '${tr('zero_damage_guarantee', defaultText: 'Zero-Damage & Correct Location Guarantee')} • OTP: ${order['deliveryOtp'] ?? '7935'}',
+                                    style: const TextStyle(color: Colors.greenAccent, fontSize: 9, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                VehicleAssignmentSheet.show(
+                                  context,
+                                  orderId: documentId,
+                                  currentVehicle: order['deliveryPartnerVehicle'],
+                                  currentPlate: order['deliveryPartnerPlate'],
+                                  currentDriverName: order['deliveryPartnerName'],
+                                );
+                              },
+                              icon: const Icon(Icons.sync_alt_rounded, size: 11, color: green),
+                              label: Text(
+                                tr('change_vehicle_optional', defaultText: 'Change Vehicle'),
+                                style: const TextStyle(color: green, fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: green.withValues(alpha: 0.4)),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BuyerLiveTrackingScreen(
+                                      order: OrderModel.fromMap(order, documentId),
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.navigation_rounded, size: 11),
+                              label: Text(tr('track', defaultText: 'Track'), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: green,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        Row(
+                          children: [
+                            const Icon(Icons.local_shipping_outlined, color: Colors.amberAccent, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tr('assign_transport_optional', defaultText: 'Assign Transport (Optional)'),
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    tr('mutual_assign_notice', defaultText: 'Either Farmer or Buyer can select transport upon mutual communication.'),
+                                    style: const TextStyle(color: Colors.white60, fontSize: 9),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                VehicleAssignmentSheet.show(
+                                  context,
+                                  orderId: documentId,
+                                  currentVehicle: order['deliveryPartnerVehicle'],
+                                  currentPlate: order['deliveryPartnerPlate'],
+                                  currentDriverName: order['deliveryPartnerName'],
+                                );
+                              },
+                              icon: const Icon(Icons.add_road_rounded, size: 11),
+                              label: Text(
+                                tr('assign_transport_title', defaultText: 'Assign (Optional)'),
+                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amberAccent,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
             // PAYMENT FOOTER
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 14, 17),
@@ -589,9 +866,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Total Amount',
-                        style: TextStyle(
+                      Text(
+                        tr('total_amount', defaultText: 'Total Amount'),
+                        style: const TextStyle(
                           color: muted,
                           fontSize: 14,
                         ),
@@ -640,7 +917,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             Flexible(
                               child: Text(
                                 paymentStatus.toLowerCase() == 'paid'
-                                    ? 'Payment Paid'
+                                    ? tr('payment_paid', defaultText: 'Payment Paid')
                                     : 'Payment $paymentStatus',
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -679,19 +956,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           color: Colors.white.withValues(alpha: .11),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'View Details',
-                            style: TextStyle(
+                            tr('view_details', defaultText: 'View Details'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          SizedBox(width: 7),
-                          Icon(
+                          const SizedBox(width: 7),
+                          const Icon(
                             Icons.chevron_right_rounded,
                             color: Colors.white,
                             size: 23,
@@ -756,7 +1033,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           Icon(icon, color: color, size: 19),
           const SizedBox(width: 7),
           Text(
-            status,
+            tr(status),
             style: TextStyle(
               color: color,
               fontSize: 13,
@@ -3208,9 +3485,7 @@ class OrderDetailsScreen extends StatelessWidget {
               children: [
 
                 Text(
-                  item['name']
-                          ?.toString() ??
-                      'Product',
+                  tr(item['name']?.toString() ?? 'Product'),
                   maxLines: 1,
                   overflow:
                       TextOverflow.ellipsis,

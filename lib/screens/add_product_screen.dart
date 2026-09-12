@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
 
 import 'ai_pricing_screen.dart';
+import 'kisan_voice_screen.dart';
+import 'quality_scanner_screen.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final String? initialCrop;
+  final int? initialQuantity;
+  final String? initialLocation;
+  final double? initialPrice;
+  final String? initialQuality;
+
+  const AddProductScreen({
+    super.key,
+    this.initialCrop,
+    this.initialQuantity,
+    this.initialLocation,
+    this.initialPrice,
+    this.initialQuality,
+  });
 
   @override
   State<AddProductScreen> createState() =>
@@ -101,8 +116,29 @@ class _AddProductScreenState
   void initState() {
     super.initState();
 
-    locationController.text =
-        "Coimbatore, Tamil Nadu";
+    if (widget.initialCrop != null) {
+      // Find matching crop key
+      final matching = cropCategory.keys.firstWhere(
+        (k) => k.toLowerCase() == widget.initialCrop!.toLowerCase(),
+        orElse: () => widget.initialCrop!,
+      );
+      selectedCrop = matching;
+      selectedCategory = cropCategory[matching] ?? "Vegetable";
+    }
+
+    if (widget.initialQuantity != null && widget.initialQuantity! > 0) {
+      quantityController.text = widget.initialQuantity.toString();
+    }
+
+    if (widget.initialLocation != null && widget.initialLocation!.isNotEmpty) {
+      locationController.text = widget.initialLocation!;
+    } else {
+      locationController.text = "Coimbatore, Tamil Nadu";
+    }
+
+    if (widget.initialPrice != null && widget.initialPrice! > 0) {
+      costController.text = widget.initialPrice!.toStringAsFixed(0);
+    }
   }
 
   @override
@@ -248,7 +284,64 @@ class _AddProductScreenState
                 // HEADER
                 _header(),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
+
+                // KISAN AI ASSIST CHIPS
+                Row(
+                  children: [
+                    Expanded(
+                      child: ActionChip(
+                        avatar: const Icon(Icons.mic_rounded, size: 16, color: green),
+                        backgroundColor: const Color(0xFF142418),
+                        side: const BorderSide(color: Color(0xFF1F4327)),
+                        label: const Text(
+                          'Voice Auto-Fill',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const KisanVoiceScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ActionChip(
+                        avatar: const Icon(Icons.camera_enhance_rounded, size: 16, color: cyan),
+                        backgroundColor: const Color(0xFF112228),
+                        side: const BorderSide(color: Color(0xFF164452)),
+                        label: const Text(
+                          'AI Quality Scan',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => QualityScannerScreen(
+                                initialCrop: selectedCrop,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
 
                 // CROP
                 _label("Crop"),

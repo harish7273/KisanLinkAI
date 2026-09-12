@@ -41,8 +41,19 @@ class _BuyerLoginScreenState
       return;
     }
 
-    final rawUsername = _usernameController.text.trim();
-    final username = rawUsername.toLowerCase();
+    final rawInput = _usernameController.text.trim();
+    final bool isEmail = rawInput.contains('@');
+    final String cleanUsername = isEmail
+        ? rawInput.toLowerCase()
+        : rawInput.toLowerCase().replaceAll(' ', '_').replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '');
+
+    if (cleanUsername.isEmpty) {
+      _showMessage('Invalid username.');
+      return;
+    }
+
+    final String email = isEmail ? rawInput.toLowerCase() : '$cleanUsername@kisanai.app';
+    final String legacyEmail = isEmail ? rawInput.toLowerCase() : '$cleanUsername@vidhai.app';
     final password = _passwordController.text;
 
     setState(() {
@@ -50,9 +61,6 @@ class _BuyerLoginScreenState
     });
 
     try {
-      final email =
-          username.contains('@') ? username : '$username@vidhai.app';
-
       UserCredential credential;
       try {
         credential = await FirebaseAuth.instance
@@ -61,29 +69,46 @@ class _BuyerLoginScreenState
           password: password,
         );
       } on FirebaseAuthException catch (authError) {
-        // If account not found or invalid-credential on first login, auto-register as buyer
-        if (authError.code == 'user-not-found') {
+        // If not found under current domain, try legacy domain for existing accounts
+        if ((authError.code == 'user-not-found' || authError.code == 'invalid-credential') && !isEmail) {
+          try {
+            credential = await FirebaseAuth.instance
+                .signInWithEmailAndPassword(
+              email: legacyEmail,
+              password: password,
+            );
+          } on FirebaseAuthException catch (_) {
+            // If still not found, auto-register as new buyer
+            try {
+              credential = await FirebaseAuth.instance
+                  .createUserWithEmailAndPassword(
+                email: email,
+                password: password,
+              );
+            } on FirebaseAuthException catch (createError) {
+              if (createError.code == 'invalid-email') {
+                credential = await FirebaseAuth.instance
+                    .createUserWithEmailAndPassword(
+                  email: legacyEmail,
+                  password: password,
+                );
+              } else if (createError.code == 'email-already-in-use') {
+                throw FirebaseAuthException(
+                  code: 'wrong-password',
+                  message: 'Incorrect password for buyer $rawInput.',
+                );
+              } else {
+                rethrow;
+              }
+            }
+          }
+        } else if (authError.code == 'user-not-found') {
+          // If plain email and not found, auto-register
           credential = await FirebaseAuth.instance
               .createUserWithEmailAndPassword(
             email: email,
             password: password,
           );
-        } else if (authError.code == 'invalid-credential') {
-          try {
-            credential = await FirebaseAuth.instance
-                .createUserWithEmailAndPassword(
-              email: email,
-              password: password,
-            );
-          } on FirebaseAuthException catch (createError) {
-            if (createError.code == 'email-already-in-use') {
-              throw FirebaseAuthException(
-                code: 'wrong-password',
-                message: 'Incorrect password for buyer $rawUsername.',
-              );
-            }
-            rethrow;
-          }
         } else {
           rethrow;
         }
@@ -102,11 +127,11 @@ class _BuyerLoginScreenState
       if (!docSnapshot.exists) {
         await userDocRef.set({
           'uid': user.uid,
-          'name': rawUsername,
-          'username': username,
+          'name': rawInput,
+          'username': cleanUsername,
           'email': email,
           'role': 'buyer',
-          'shopName': '$rawUsername Store',
+          'shopName': '$rawInput Store',
           'phone': '',
           'deliveryAddress': '',
           'location': '',
@@ -125,8 +150,8 @@ class _BuyerLoginScreenState
         } else if (role == null || role.isEmpty) {
           await userDocRef.set({
             'role': 'buyer',
-            'name': data['name'] ?? rawUsername,
-            'username': username,
+            'name': data['name'] ?? rawInput,
+            'username': cleanUsername,
           }, SetOptions(merge: true));
         }
       }
@@ -143,7 +168,9 @@ class _BuyerLoginScreenState
     } on FirebaseAuthException catch (e) {
       String message = 'Login failed.';
 
-      if (e.code == 'invalid-credential' ||
+      if (e.code == 'invalid-email') {
+        message = 'Invalid username.';
+      } else if (e.code == 'invalid-credential' ||
           e.code == 'wrong-password' ||
           e.code == 'user-not-found') {
         message = 'Invalid username or password.';
@@ -177,6 +204,7 @@ class _BuyerLoginScreenState
   void _showMessage(String message) {
     if (!mounted) return;
 
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
@@ -263,7 +291,7 @@ class _BuyerLoginScreenState
 
                 const Center(
                   child: Text(
-                    'Login to your Vidhai buyer account',
+                    'Login to your KisanAI buyer account',
                     textAlign:
                         TextAlign.center,
                     style: TextStyle(
@@ -298,15 +326,14 @@ class _BuyerLoginScreenState
                   validator: (value) {
                     if (value == null ||
                         value.trim().isEmpty) {
-                      return
-                          'Enter username';
+                      return 'Enter username or email';
                     }
 
                     return null;
                   },
                   decoration:
                       _inputDecoration(
-                    'Enter username',
+                    'e.g. buyer_kovai or name@email.com',
                     Icons
                         .person_outline_rounded,
                   ),
@@ -469,6 +496,33 @@ class _BuyerLoginScreenState
                       ),
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 12),
+
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MainScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.play_circle_outline_rounded,
+                    color: orange,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Quick Demo / Explore without login',
+                    style: TextStyle(
+                      color: orange,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),

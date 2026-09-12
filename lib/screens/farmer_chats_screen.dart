@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'farmer_chat_screen.dart';
+import '../services/language_service.dart';
 
 class FarmerChatsScreen extends StatefulWidget {
   const FarmerChatsScreen({
@@ -52,6 +53,22 @@ class _FarmerChatsScreenState
   // Cache buyer profiles
   final Map<String, BuyerProfileData>
       _profileCache = {};
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
 
   // ============================================================
   // GET BUYER PROFILE
@@ -292,16 +309,16 @@ class _FarmerChatsScreenState
         titleSpacing: 0,
 
         title:
-            const Column(
+            Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
 
           children: [
             Text(
-              'Chats',
+              LanguageService.tr('nav_messages', defaultText: 'Chats'),
 
               style:
-                  TextStyle(
+                  const TextStyle(
                 color:
                     Colors.white,
 
@@ -313,15 +330,15 @@ class _FarmerChatsScreenState
               ),
             ),
 
-            SizedBox(
+            const SizedBox(
               height: 2,
             ),
 
             Text(
-              'Talk with your buyers',
+              LanguageService.tr('talk_with_buyers', defaultText: 'Talk with your buyers'),
 
               style:
-                  TextStyle(
+                  const TextStyle(
                 color:
                     Colors.white38,
 

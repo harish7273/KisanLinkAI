@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/product_model.dart';
 import '../services/product_service.dart';
+import '../services/language_service.dart';
 import '../screens/product_details_screen.dart';
 
 class ProductCard extends StatelessWidget {
@@ -29,8 +30,23 @@ class ProductCard extends StatelessWidget {
       );
     }
 
+    // 1b. Check direct asset path in product.image
+    if (product.image.isNotEmpty && product.image.startsWith('assets/')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Image.asset(
+          product.image,
+          width: size,
+          height: size,
+          cacheWidth: 200,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildFallbackImage(product.name, size),
+        ),
+      );
+    }
+
     // 2. Check local crop assets
-    final localAssetPath = _getLocalCropAsset(product.name);
+    final localAssetPath = _getLocalCropAsset(product.name, product.category);
     if (localAssetPath != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(18),
@@ -38,6 +54,7 @@ class ProductCard extends StatelessWidget {
           localAssetPath,
           width: size,
           height: size,
+          cacheWidth: 200,
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _buildFallbackImage(product.name, size),
         ),
@@ -48,16 +65,31 @@ class ProductCard extends StatelessWidget {
     return _buildFallbackImage(product.name, size);
   }
 
-  String _getLocalCropAsset(String cropName) {
+  String? _getLocalCropAsset(String cropName, String category) {
     final name = cropName.trim().toLowerCase();
+    final cat = category.trim().toLowerCase();
+
+    // Specific Crop Mappings
+    if (name.contains("banana") || name.contains("nendran")) return "assets/crops/banana.png";
+    if (name.contains("corn") || name.contains("maize")) return "assets/crops/corn.png";
+    if (name.contains("cabbage")) return "assets/crops/cabbage.png";
+    if (name.contains("brinjal") || name.contains("eggplant") || name.contains("aubergine")) return "assets/crops/brinjal.png";
+    if (name.contains("mango") || name.contains("alphonso")) return "assets/crops/mango.png";
+    if (name.contains("spinach") || name.contains("palak") || name.contains("keerai")) return "assets/crops/spinach.png";
     if (name.contains("onion")) return "assets/crops/onion.png";
     if (name.contains("potato")) return "assets/crops/potato.png";
     if (name.contains("carrot")) return "assets/crops/carrot.png";
     if (name.contains("chilli") || name.contains("chili")) return "assets/crops/chilli.png";
     if (name.contains("tomato")) return "assets/crops/tomato.png";
 
-    // Default fallback image from assets/crops/
-    return "assets/crops/tomato.png";
+    // Category Level Fallbacks
+    if (cat.contains("fruit") || name.contains("fruit") || name.contains("apple")) return "assets/products/fruits.png";
+    if (cat.contains("grain") || cat.contains("cereal") || name.contains("paddy") || name.contains("rice") || name.contains("wheat")) return "assets/products/grains.png";
+    if (cat.contains("dairy") || name.contains("milk") || name.contains("paneer") || name.contains("ghee")) return "assets/products/dairy.png";
+    if (cat.contains("spice") || name.contains("turmeric") || name.contains("pepper") || name.contains("cardamom")) return "assets/products/spices.png";
+    if (cat.contains("veg")) return "assets/products/vegetables.png";
+
+    return null;
   }
 
   Widget _buildFallbackImage(String cropName, double size) {
@@ -82,22 +114,30 @@ class ProductCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.eco_rounded,
-            color: Colors.greenAccent,
-            size: 36,
+          ClipOval(
+            child: Image.asset(
+              'assets/images/kisan_logo.png',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.spa_rounded,
+                color: Colors.greenAccent,
+                size: 36,
+              ),
+            ),
           ),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              cropName.isNotEmpty ? cropName : "Produce",
+              cropName.isNotEmpty ? tr(cropName) : tr("Produce"),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -158,7 +198,7 @@ class ProductCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                product.name,
+                                tr(product.name),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

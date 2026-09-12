@@ -6,10 +6,22 @@ import 'package:geocoding/geocoding.dart';
 import '../models/weather_model.dart';
 import '../services/location_service.dart';
 import '../services/weather_service.dart';
+import '../services/data_seed_service.dart';
 
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'farmer_payouts_screen.dart';
 import 'farmer_notifications_screen.dart';
 import 'farmer_orders_screen.dart';
-import 'farmer_ai_assistant.dart';
+import 'kisan_voice_screen.dart';
+import 'quality_scanner_screen.dart';
+import 'kisan_pool_screen.dart';
+import 'offline_sync_screen.dart';
+import 'weather_details_screen.dart';
+import 'farmer_analytics_screen.dart';
+import '../services/offline_sync_service.dart';
+import '../widgets/language_switch_button.dart';
+import '../services/language_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,7 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // FARMER
   // ============================================================
 
-  String farmerName = 'Madhan';
+  String farmerName = FirebaseAuth.instance.currentUser?.displayName?.trim().isNotEmpty == true
+      ? FirebaseAuth.instance.currentUser!.displayName!.trim()
+      : 'Farmer';
 
   String get farmerId {
     return FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -47,11 +61,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // WEATHER
   // ============================================================
 
-  WeatherModel? weather;
+  WeatherModel? weather = WeatherModel.defaultCoimbatore();
 
   String location = 'Coimbatore';
 
-  bool weatherLoading = true;
+  bool weatherLoading = false;
 
   // ============================================================
   // INIT
@@ -60,14 +74,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
 
     debugPrint('========================================');
     debugPrint('FARMER HOME INITIALIZED');
     debugPrint('AUTH UID: $farmerId');
+    debugPrint('INITIAL FARMER NAME: $farmerName');
     debugPrint('========================================');
 
     loadUser();
     loadWeather();
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
   }
 
   // ============================================================
@@ -76,40 +102,92 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadUser() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final user = FirebaseAuth.instance.currentUser;
 
-      if (uid == null || uid.isEmpty) {
+      if (user == null || user.uid.isEmpty) {
         debugPrint('USER LOAD: Firebase user is null');
         return;
       }
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+      final uid = user.uid;
+      String resolvedName = user.displayName?.trim() ?? '';
 
-      if (!snapshot.exists) {
-        debugPrint(
-          'USER LOAD: users/$uid does not exist',
-        );
-        return;
+      // 1. Try farmers collection first (where registration writes)
+      try {
+        final farmerSnapshot = await FirebaseFirestore.instance
+            .collection('farmers')
+            .doc(uid)
+            .get();
+
+        if (farmerSnapshot.exists && farmerSnapshot.data() != null) {
+          final fData = farmerSnapshot.data()!;
+          final fName = (fData['name'] ?? fData['farmerName'] ?? '').toString().trim();
+          if (fName.isNotEmpty) {
+            resolvedName = fName;
+            debugPrint('USER LOAD: Found name in farmers collection -> $resolvedName');
+          }
+        }
+      } catch (e) {
+        debugPrint('FARMER COLLECTION LOAD ERROR: $e');
       }
 
-      final data = snapshot.data();
+      // 2. Try users collection second
+      try {
+        final userSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
 
-      debugPrint('USER DATA: $data');
+        if (userSnapshot.exists && userSnapshot.data() != null) {
+          final uData = userSnapshot.data()!;
+          final uName = (uData['name'] ?? uData['farmerName'] ?? '').toString().trim();
+          if (uName.isNotEmpty && (resolvedName.isEmpty || resolvedName == 'Farmer')) {
+            resolvedName = uName;
+            debugPrint('USER LOAD: Found name in users collection -> $resolvedName');
+          }
+        }
+      } catch (e) {
+        debugPrint('USER COLLECTION LOAD ERROR: $e');
+      }
 
-      if (data == null) return;
+      // 3. Fallback to phone / email if name is still empty
+      if (resolvedName.isEmpty || resolvedName == 'Farmer') {
+        final phone = user.phoneNumber?.trim() ?? '';
+        final email = user.email?.trim() ?? '';
+        if (phone.isNotEmpty) {
+          resolvedName = phone;
+        } else if (email.isNotEmpty && email.contains('@kisanai.app')) {
+          resolvedName = email.split('@').first;
+        } else if (email.isNotEmpty && email.contains('@')) {
+          resolvedName = email.split('@').first;
+        } else {
+          resolvedName = 'Farmer';
+        }
+      }
 
-      final name =
-          (data['name'] ?? 'Madhan').toString().trim();
+      // 4. Ensure starter orders, products, and auctions exist & profile is synced
+      try {
+        final phone = user.phoneNumber?.trim() ?? '';
+        await DataSeedService.ensureFarmerDataSeeded(
+          farmerUid: uid,
+          farmerName: resolvedName,
+          phone: phone,
+        );
+
+        if (user.displayName != resolvedName) {
+          await user.updateDisplayName(resolvedName);
+        }
+      } catch (e) {
+        debugPrint('SEED / PROFILE SYNC ERROR: $e');
+      }
 
       if (!mounted) return;
 
       setState(() {
-        farmerName =
-            name.isEmpty ? 'Madhan' : name;
+        farmerName = resolvedName;
       });
+
+      debugPrint('USER LOAD COMPLETED: final farmerName = $farmerName');
     } catch (e) {
       debugPrint('USER LOAD ERROR: $e');
     }
@@ -127,31 +205,30 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
 
-      final position =
-          await LocationService.getCurrentLocation();
-
-      final places =
-          await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
+      double lat = 11.0168;
+      double lon = 76.9558;
       String detectedLocation = 'Coimbatore';
 
-      if (places.isNotEmpty) {
-        final locality = places.first.locality;
+      try {
+        final position = await LocationService.getCurrentLocation()
+            .timeout(const Duration(seconds: 4));
+        lat = position.latitude;
+        lon = position.longitude;
 
-        if (locality != null &&
-            locality.trim().isNotEmpty) {
-          detectedLocation = locality;
+        final places = await placemarkFromCoordinates(lat, lon)
+            .timeout(const Duration(seconds: 3));
+
+        if (places.isNotEmpty) {
+          final locality = places.first.locality;
+          if (locality != null && locality.trim().isNotEmpty) {
+            detectedLocation = locality;
+          }
         }
+      } catch (e) {
+        debugPrint('LOCATION ACQUISITION FALLBACK: $e');
       }
 
-      final data =
-          await WeatherService.getCurrentWeather(
-        position.latitude,
-        position.longitude,
-      );
+      final data = await WeatherService.getCurrentWeather(lat, lon);
 
       if (!mounted) return;
 
@@ -167,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         location = 'Coimbatore';
-        weather = null;
+        weather = WeatherModel.defaultCoimbatore();
         weatherLoading = false;
       });
     }
@@ -181,14 +258,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final hour = DateTime.now().hour;
 
     if (hour < 12) {
-      return 'Good Morning';
+      return tr('good_morning');
     }
 
     if (hour < 17) {
-      return 'Good Afternoon';
+      return tr('good_afternoon');
     }
 
-    return 'Good Evening';
+    return tr('good_evening');
   }
 
   // ============================================================
@@ -481,73 +558,147 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        18,
         10,
-        16,
-        16,
+        10,
+        10,
+        14,
       ),
-
       decoration: const BoxDecoration(
         color: Color(0xFF06150C),
-
         border: Border(
           bottom: BorderSide(
             color: Color(0xFF123B20),
           ),
         ),
       ),
-
       child: Row(
         children: [
           GestureDetector(
             onTap: openFarmerDrawer,
-
             child: const Icon(
               Icons.menu_rounded,
               color: Colors.white,
-              size: 32,
+              size: 28,
             ),
           ),
-
-          const SizedBox(width: 14),
-
-          const Icon(
-            Icons.eco_rounded,
-            color: green,
-            size: 42,
-          ),
-
-          const SizedBox(width: 6),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-              children: [
-                const Text(
-                  'Vidhai',
-
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 25,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-
-                Text(
-                  'Fresh from Farms 🌱',
-
-                  style: TextStyle(
-                    color:
-                        Colors.white.withOpacity(.62),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+          const SizedBox(width: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              'assets/images/kisan_logo.png',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Icon(
+                Icons.eco_rounded,
+                color: green,
+                size: 36,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'KisanAI',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              Text(
+                'Direct Farm AI',
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+
+          // ======================================================
+          // OFFLINE SYNC STATUS CHIP
+          // ======================================================
+
+          ValueListenableBuilder<bool>(
+            valueListenable:
+                OfflineSyncService.instance.isOnlineNotifier,
+            builder: (context, isOnline, _) {
+              return ValueListenableBuilder<int>(
+                valueListenable:
+                    OfflineSyncService.instance.pendingCountNotifier,
+                builder: (context, pending, _) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const OfflineSyncScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isOnline
+                            ? const Color(0xFF0E2415)
+                            : const Color(0xFF2E230B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isOnline
+                              ? const Color(0xFF1E522E)
+                              : const Color(0xFF7A580E),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isOnline
+                                  ? const Color(0xFF00E676)
+                                  : Colors.amber,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isOnline
+                                ? (pending > 0 ? '$pending Sync' : 'Live')
+                                : '$pending Off',
+                            style: TextStyle(
+                              color: isOnline
+                                  ? const Color(0xFF00E676)
+                                  : Colors.amber,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+
+          // ======================================================
+          // ON-SCREEN TRANSLATION LANGUAGE SWITCHER
+          // ======================================================
+          const LanguageSwitchButton(compact: true),
+          const SizedBox(width: 5),
 
           // ======================================================
           // NOTIFICATION
@@ -641,7 +792,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           const SizedBox(
-            width: 13,
+            width: 6,
           ),
 
           GestureDetector(
@@ -995,6 +1146,82 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             drawerItem(
                               icon:
+                                  Icons.record_voice_over_rounded,
+                              title:
+                                  'KisanAI Voice Assistant',
+                              onTap:
+                                  () {
+                                Navigator.pop(
+                                  context,
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const KisanVoiceScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            drawerItem(
+                              icon:
+                                  Icons.camera_enhance_rounded,
+                              title:
+                                  'AI Quality Scanner',
+                              onTap:
+                                  () {
+                                Navigator.pop(
+                                  context,
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const QualityScannerScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            drawerItem(
+                              icon:
+                                  Icons.local_shipping_rounded,
+                              title:
+                                  'KisanPool Logistics',
+                              onTap:
+                                  () {
+                                Navigator.pop(
+                                  context,
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const KisanPoolScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            drawerItem(
+                              icon:
+                                  Icons.cloud_sync_rounded,
+                              title:
+                                  'Offline Sync Center',
+                              onTap:
+                                  () {
+                                Navigator.pop(
+                                  context,
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const OfflineSyncScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            drawerItem(
+                              icon:
                                   Icons
                                       .bar_chart_rounded,
                               title:
@@ -1005,8 +1232,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   context,
                                 );
 
-                                showComingSoon(
-                                  'Analytics',
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const FarmerAnalyticsScreen(),
+                                  ),
                                 );
                               },
                             ),
@@ -1085,7 +1315,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       child:
                           Text(
-                        'Vidhai • Farmer App',
+                        'KisanAI • Farmer App',
 
                         style:
                             TextStyle(
@@ -1171,7 +1401,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder:
           (context, snapshot) {
         String name =
-            farmerName;
+            farmerName.isNotEmpty ? farmerName : 'Farmer';
 
         String avatar =
             'farmer_1';
@@ -1182,10 +1412,11 @@ class _HomeScreenState extends State<HomeScreen> {
               snapshot.data!.data();
 
           if (data != null) {
-            name =
-                (data['name'] ??
-                        farmerName)
-                    .toString();
+            final docName =
+                (data['name'] ?? '').toString().trim();
+            if (docName.isNotEmpty) {
+              name = docName;
+            }
 
             final savedAvatar =
                 data['profileAvatar']
@@ -1302,7 +1533,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             children: [
               const Text(
-                'Vidhai',
+                'KisanAI',
 
                 style:
                     TextStyle(
@@ -1718,13 +1949,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 8,
                           ),
 
-                          const Text(
-                            'Manage your farm,\n'
-                            'products and orders\n'
-                            'all in one place.',
-
+                          Text(
+                            tr('manage_farm_intro'),
                             style:
-                                TextStyle(
+                                const TextStyle(
                               color:
                                   Colors.white,
                               fontSize:
@@ -1892,11 +2120,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 5,
               ),
 
-              const Text(
-                'Wallet Balance',
-
+              Text(
+                tr('wallet_balance'),
                 style:
-                    TextStyle(
+                    const TextStyle(
                   color:
                       textSecondary,
                   fontSize:
@@ -1923,7 +2150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   color:
                       green,
                   fontSize:
-                      16,
+                  16,
                   fontWeight:
                       FontWeight.bold,
                 ),
@@ -1933,11 +2160,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 4,
               ),
 
-              const Text(
-                'View Transactions ›',
-
+              Text(
+                tr('view_transactions'),
                 style:
-                    TextStyle(
+                    const TextStyle(
                   color:
                       green,
                   fontSize:
@@ -1959,131 +2185,85 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildWeather() {
     return Align(
-      alignment:
-          Alignment.bottomLeft,
-
-      child:
-          Container(
-        padding:
-            const EdgeInsets.symmetric(
-          horizontal: 9,
-          vertical: 6,
-        ),
-
-        decoration:
-            BoxDecoration(
-          color:
-              const Color(
-            0xEE101510,
+      alignment: Alignment.bottomLeft,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WeatherDetailsScreen(
+                weather: weather ?? WeatherModel.defaultCoimbatore(),
+                location: location,
+              ),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 9,
+            vertical: 6,
           ),
-
-          borderRadius:
-              BorderRadius.circular(
-            12,
-          ),
-
-          border:
-              Border.all(
-            color:
-                const Color(
-              0xFF344638,
+          decoration: BoxDecoration(
+            color: const Color(0xEE101510),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF344638),
             ),
           ),
-        ),
-
-        child:
-            Row(
-          mainAxisSize:
-              MainAxisSize.min,
-
-          children: [
-            const Text(
-              '☀️',
-
-              style:
-                  TextStyle(
-                fontSize:
-                    17,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                weather?.weatherIcon ?? '⛅',
+                style: const TextStyle(
+                  fontSize: 17,
+                ),
               ),
-            ),
-
-            const SizedBox(
-              width: 5,
-            ),
-
-            Text(
-              weatherLoading
-                  ? '--°'
-                  : '${weather?.temperature.round() ?? '--'}°',
-
-              style:
-                  const TextStyle(
-                color:
-                    Colors.white,
-                fontSize:
-                    16,
-                fontWeight:
-                    FontWeight.bold,
+              const SizedBox(width: 5),
+              Text(
+                '${(weather ?? WeatherModel.defaultCoimbatore()).temperature.round()}°C',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-
-            const SizedBox(
-              width: 4,
-            ),
-
-            Text(
-              weather?.condition ??
-                  'Sunny',
-
-              style:
-                  const TextStyle(
-                color:
-                    textSecondary,
-                fontSize:
-                    9,
+              const SizedBox(width: 5),
+              Text(
+                tr(weather?.condition ?? 'Partly Cloudy'),
+                style: const TextStyle(
+                  color: textSecondary,
+                  fontSize: 9,
+                ),
               ),
-            ),
-
-            const SizedBox(
-              width: 7,
-            ),
-
-            Container(
-              width: 1,
-              height: 15,
-              color:
-                  Colors.white24,
-            ),
-
-            const SizedBox(
-              width: 7,
-            ),
-
-            const Icon(
-              Icons
-                  .location_on_rounded,
-              color:
-                  textSecondary,
-              size:
-                  12,
-            ),
-
-            const SizedBox(
-              width: 2,
-            ),
-
-            Text(
-              '$location, TN',
-
-              style:
-                  const TextStyle(
-                color:
-                    textSecondary,
-                fontSize:
-                    9,
+              const SizedBox(width: 7),
+              Container(
+                width: 1,
+                height: 15,
+                color: Colors.white24,
               ),
-            ),
-          ],
+              const SizedBox(width: 7),
+              const Icon(
+                Icons.location_on_rounded,
+                color: textSecondary,
+                size: 12,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                '$location, TN',
+                style: const TextStyle(
+                  color: textSecondary,
+                  fontSize: 9,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: green,
+                size: 9,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2241,13 +2421,12 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child:
                         Text(
-                      "Today's Overview",
-
+                      tr('today_overview'),
                       style:
-                          TextStyle(
+                          const TextStyle(
                         color:
                             Colors.white,
                         fontSize:
@@ -2258,17 +2437,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  const Text(
-                    'View Analytics ↗',
-
-                    style:
-                        TextStyle(
-                      color:
-                          green,
-                      fontSize:
-                          10,
-                      fontWeight:
-                          FontWeight.bold,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FarmerAnalyticsScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      tr('view_analytics'),
+                      style:
+                          const TextStyle(
+                        color:
+                            green,
+                        fontSize:
+                            10,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -2307,14 +2495,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         '$newOrders',
 
                     label:
-                        'New Orders',
+                        tr('new_orders'),
 
                     color:
                         green,
 
                     note:
                         newOrders == 0
-                            ? 'No new orders'
+                            ? tr('no_new_orders')
                             : '$newOrders order(s) waiting',
                   ),
 
@@ -2327,13 +2515,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         '5',
 
                     label:
-                        'New Messages',
+                        tr('nav_messages'),
 
                     color:
                         orange,
 
                     note:
-                        'Messages',
+                        tr('nav_messages'),
                   ),
 
                   statCard(
@@ -2345,14 +2533,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         '$inProgress',
 
                     label:
-                        'In Progress',
+                        tr('in_progress'),
 
                     color:
                         purple,
 
                     note:
                         inProgress == 0
-                            ? 'No orders'
+                            ? tr('no_orders')
                             : '$inProgress order(s) active',
                   ),
 
@@ -2365,7 +2553,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         '₹${todayEarnings.toStringAsFixed(0)}',
 
                     label:
-                        "Today's Earnings",
+                        tr('today_earnings'),
 
                     color:
                         blue,
@@ -2373,7 +2561,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     note:
                         todayEarnings == 0
                             ? 'No earnings yet'
-                            : 'From completed orders',
+                            : tr('from_completed'),
                   ),
                 ],
               ),
@@ -2584,11 +2772,10 @@ class _HomeScreenState extends State<HomeScreen> {
             CrossAxisAlignment.start,
 
         children: [
-          const Text(
-            'Quick Actions',
-
+          Text(
+            tr('quick_actions'),
             style:
-                TextStyle(
+                const TextStyle(
               color:
                   Colors.white,
               fontSize:
@@ -2612,8 +2799,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
               children: [
                 quickAction(
+                  Icons.record_voice_over_rounded,
+                  tr('voice_assistant'),
+                  () => Navigator.pushNamed(context, '/kisan-voice'),
+                ),
+
+                quickAction(
+                  Icons.camera_enhance_rounded,
+                  tr('quality_scanner'),
+                  () => Navigator.pushNamed(context, '/quality-scanner'),
+                ),
+
+                quickAction(
+                  Icons.local_shipping_rounded,
+                  tr('kisan_pool'),
+                  () => Navigator.pushNamed(context, '/kisan-pool'),
+                ),
+
+                quickAction(
+                  Icons.cloud_sync_rounded,
+                  tr('offline_sync'),
+                  () => Navigator.pushNamed(context, '/offline-sync'),
+                ),
+
+                quickAction(
                   Icons.add_rounded,
-                  'Add Product',
+                  tr('add_product'),
                   () {
                     Navigator.pushNamed(
                       context,
@@ -2625,36 +2836,50 @@ class _HomeScreenState extends State<HomeScreen> {
                 quickAction(
                   Icons
                       .shopping_basket_outlined,
-                  'Manage Products',
+                  tr('manage_products'),
                   () {},
                 ),
 
                 quickAction(
                   Icons
                       .assignment_rounded,
-                  'Orders',
+                  tr('nav_orders'),
                   openOrders,
                 ),
 
                 quickAction(
                   Icons
                       .chat_bubble_rounded,
-                  'Messages',
+                  tr('nav_messages'),
                   () {},
                 ),
 
                 quickAction(
                   Icons
                       .bar_chart_rounded,
-                  'Analytics',
-                  () {},
+                  tr('analytics'),
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FarmerAnalyticsScreen(),
+                      ),
+                    );
+                  },
                 ),
 
                 quickAction(
                   Icons
                       .currency_rupee_rounded,
-                  'Payouts',
-                  () {},
+                  tr('payouts'),
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FarmerPayoutsScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -2816,13 +3041,12 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child:
                     Text(
-                  'Recent Orders',
-
+                  tr('recent_orders'),
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         Colors.white,
                     fontSize:
@@ -2838,11 +3062,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     openOrders,
 
                 child:
-                    const Text(
-                  'View All Orders  ›',
-
+                    Text(
+                  '${tr('view_all')}  ›',
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         green,
                     fontSize:
@@ -3658,8 +3881,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 ElevatedButton(
-                  onPressed:
-                      () {},
+                  onPressed: () => _showShareStoreSheet(context),
 
                   style:
                       ElevatedButton
@@ -3731,6 +3953,159 @@ class _HomeScreenState extends State<HomeScreen> {
                 60,
           ),
         ],
+      ),
+    );
+  }
+
+  void _showShareStoreSheet(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final farmerName = user?.displayName ?? 'KisanAI Farm';
+    final storeUrl = 'https://kisanai.app/farm/${user?.uid ?? "farmer_kovai"}';
+    final shareMessage = 'Buy fresh farm produce directly from $farmerName on KisanAI! 🌾 Check out my farm listings here: $storeUrl';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetCtx) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F1611),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          border: Border(top: BorderSide(color: Color(0xFF243426), width: 1.5)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: green.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: green.withValues(alpha: 0.3)),
+              ),
+              child: const Icon(Icons.storefront_rounded, color: green, size: 30),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Share Your Farm Store',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Connect directly with buyers and eliminate middlemen fees.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 11),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF161F18),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF243426)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.link_rounded, color: green, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      storeUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: storeUrl));
+                      Navigator.pop(sheetCtx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          backgroundColor: Color(0xFF142718),
+                          behavior: SnackBarBehavior.floating,
+                          content: Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded, color: green, size: 18),
+                              SizedBox(width: 8),
+                              Text('Store link copied to clipboard! Share with buyers.'),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: green,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Copy',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.parse('https://api.whatsapp.com/send?text=${Uri.encodeComponent(shareMessage)}');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.chat_bubble_rounded, size: 18),
+                label: const Text('Share on WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: shareMessage));
+                  Navigator.pop(sheetCtx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Color(0xFF142718),
+                      behavior: SnackBarBehavior.floating,
+                      content: Text('Share message copied! Ready to post on social media.'),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.share_rounded, size: 18, color: Colors.white70),
+                label: const Text('Copy Full Message', style: TextStyle(color: Colors.white70)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white24),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3849,8 +4224,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               child:
                   const Icon(
-                Icons
-                    .smart_toy_rounded,
+                Icons.mic_rounded,
 
                 color:
                     Color(
@@ -3858,7 +4232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 size:
-                    24,
+                    26,
               ),
             ),
           ),
@@ -3872,93 +4246,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // ============================================================
 
   void openAiAssistant() {
-    showGeneralDialog(
-      context:
-          context,
-
-      barrierDismissible:
-          true,
-
-      barrierLabel:
-          'Vidhai Assistant',
-
-      barrierColor:
-          Colors.transparent,
-
-      transitionDuration:
-          const Duration(
-        milliseconds:
-            300,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const KisanVoiceScreen(),
       ),
-
-      pageBuilder:
-          (
-        context,
-        animation,
-        secondaryAnimation,
-      ) {
-        return Material(
-          color:
-              Colors.transparent,
-
-          child:
-              FarmerAiAssistant(
-            farmerName:
-                farmerName,
-
-            weatherLocation:
-                location,
-
-            temperature:
-                weather?.temperature,
-
-            weatherCondition:
-                weather?.condition,
-          ),
-        );
-      },
-
-      transitionBuilder:
-          (
-        context,
-        animation,
-        secondaryAnimation,
-        child,
-      ) {
-        final curvedAnimation =
-            CurvedAnimation(
-          parent:
-              animation,
-
-          curve:
-              Curves.easeOutCubic,
-        );
-
-        return FadeTransition(
-          opacity:
-              curvedAnimation,
-
-          child:
-              SlideTransition(
-            position:
-                Tween<Offset>(
-              begin:
-                  const Offset(
-                0,
-                0.15,
-              ),
-
-              end:
-                  Offset.zero,
-            ).animate(
-              curvedAnimation,
-            ),
-
-            child:
-                child,
-          ),
-        );
-      },
     );
   }
 }

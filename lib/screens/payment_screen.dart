@@ -878,7 +878,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'amount': amountPaise,
-            'receipt': 'VIDHAI_${DateTime.now().millisecondsSinceEpoch}',
+            'receipt': 'KISANAI_${DateTime.now().millisecondsSinceEpoch}',
           }),
         ).timeout(const Duration(seconds: 4));
 
@@ -917,9 +917,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'key': razorpayKeyId,
       'amount': amountPaise,
       'currency': 'INR',
-      'name': 'Vidhai',
+      'name': 'KisanAI',
       'description':
-          'Vidhai Farmer Marketplace',
+          'KisanAI Farmer Marketplace',
       'order_id': orderId,
       'prefill': {
         'name':

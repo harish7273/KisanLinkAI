@@ -4,7 +4,8 @@ import '../screens/buyer_home_screen.dart';
 import '../screens/buyer_market_screen.dart';
 import '../screens/wishlist_screen.dart';
 import '../screens/orders_screen.dart';
-import '../screens/a.dart';
+import '../screens/buyer_profile_screen.dart';
+import '../services/language_service.dart';
 
 class BuyerBottomNav extends StatefulWidget {
   const BuyerBottomNav({super.key});
@@ -15,6 +16,22 @@ class BuyerBottomNav extends StatefulWidget {
 
 class _BuyerBottomNavState extends State<BuyerBottomNav> {
   int selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
 
   final List<Widget> pages = const [
     BuyerHomeScreen(),
@@ -58,27 +75,27 @@ class _BuyerBottomNavState extends State<BuyerBottomNav> {
               _navItem(
                 index: 0,
                 icon: Icons.home_rounded,
-                label: "Home",
+                label: tr("nav_home"),
               ),
               _navItem(
                 index: 1,
                 icon: Icons.storefront_rounded,
-                label: "Market",
+                label: tr("nav_market"),
               ),
               _navItem(
                 index: 2,
                 icon: Icons.favorite_rounded,
-                label: "Wishlist",
+                label: tr("nav_wishlist"),
               ),
               _navItem(
                 index: 3,
                 icon: Icons.shopping_bag_rounded,
-                label: "Orders",
+                label: tr("nav_orders"),
               ),
               _navItem(
                 index: 4,
                 icon: Icons.person_rounded,
-                label: "Profile",
+                label: tr("nav_profile"),
               ),
             ],
           ),

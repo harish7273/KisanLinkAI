@@ -91,6 +91,7 @@ class OrderModel {
   final double? pickupLongitude;
   final double? dropLatitude;
   final double? dropLongitude;
+  final double? distanceKm;
 
   final String? pickupOtp;
   final String? deliveryOtp;
@@ -137,6 +138,7 @@ class OrderModel {
     this.pickupLongitude,
     this.dropLatitude,
     this.dropLongitude,
+    this.distanceKm,
     this.pickupOtp,
     this.deliveryOtp,
     this.cancellationReason,
@@ -188,6 +190,7 @@ class OrderModel {
       'pickupLongitude': pickupLongitude,
       'dropLatitude': dropLatitude,
       'dropLongitude': dropLongitude,
+      'distanceKm': distanceKm,
       'pickupOtp': pickupOtp,
       'deliveryOtp': deliveryOtp,
       'cancellationReason': cancellationReason,
@@ -262,6 +265,7 @@ class OrderModel {
       pickupLongitude: (map['pickupLongitude'] as num?)?.toDouble(),
       dropLatitude: (map['dropLatitude'] as num?)?.toDouble(),
       dropLongitude: (map['dropLongitude'] as num?)?.toDouble(),
+      distanceKm: (map['distanceKm'] as num?)?.toDouble(),
       pickupOtp: map['pickupOtp']?.toString(),
       deliveryOtp: map['deliveryOtp']?.toString(),
       cancellationReason: map['cancellationReason']?.toString(),

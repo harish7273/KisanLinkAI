@@ -2,7 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'package:google_fonts/google_fonts.dart';
+
 import '../models/product_model.dart';
+import '../services/language_service.dart';
+import '../widgets/create_demand_sheet.dart';
 import 'cart_screen.dart';
 import 'chat_screen.dart';
 
@@ -83,6 +87,7 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
   @override
   void initState() {
     super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
 
     _searchController.addListener(() {
       if (!mounted) return;
@@ -94,12 +99,17 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
     });
   }
 
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
   // ============================================================
   // DISPOSE
   // ============================================================
 
   @override
   void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -122,6 +132,10 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
 
             SliverToBoxAdapter(
               child: _buildSearchBar(),
+            ),
+
+            SliverToBoxAdapter(
+              child: _buildPostDemandBanner(),
             ),
 
             SliverToBoxAdapter(
@@ -188,14 +202,23 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
           Expanded(
             child: Row(
               children: [
-                const Icon(
-                  Icons.eco_rounded,
-                  color: orange,
-                  size: 27,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/kisan_logo.png',
+                    width: 26,
+                    height: 26,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.spa_rounded,
+                      color: orange,
+                      size: 26,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 3),
                 const Text(
-                  'Vidhai',
+                  'KisanAI',
                   style: TextStyle(
                     color: orange,
                     fontSize: 20,
@@ -607,6 +630,112 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
   }
 
   // ============================================================
+  // POST CROP DEMAND BANNER (STEP 1 WORKFLOW)
+  // ============================================================
+
+  Widget _buildPostDemandBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF142416),
+            Color(0xFF0F1A11),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.campaign_rounded,
+              color: Color(0xFF22C55E),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Post Crop Demand',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF22C55E).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Step 1',
+                        style: TextStyle(
+                          color: Color(0xFF22C55E),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Broadcast demand directly to regional farmers (e.g. 500kg Tomatoes)',
+                  style: TextStyle(
+                    color: Colors.white60,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () => CreateDemandSheet.show(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF22C55E),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Post Demand',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
   // CATEGORY IMAGES
   // ============================================================
 
@@ -701,15 +830,24 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
               child: Image.asset(
                 image,
                 fit: BoxFit.contain,
+                cacheWidth: 200,
                 errorBuilder: (
                   context,
                   error,
                   stackTrace,
                 ) {
-                  return const Icon(
-                    Icons.eco_rounded,
-                    color: orange,
-                    size: 30,
+                  return Center(
+                    child: Image.asset(
+                      'assets/images/kisan_logo.png',
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.spa_rounded,
+                        color: orange,
+                        size: 28,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -718,7 +856,7 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
             const SizedBox(height: 7),
 
             Text(
-              name,
+              LanguageService.tr(name),
               maxLines: 2,
               textAlign:
                   TextAlign.center,
@@ -755,13 +893,13 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
       ),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
-              'Fresh from Farmers near you 🌱',
+              LanguageService.tr('fresh_picks'),
               maxLines: 2,
               overflow:
                   TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight:
@@ -1670,6 +1808,7 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
       child: Image.asset(
         image,
         fit: BoxFit.contain,
+        cacheWidth: 200,
         errorBuilder:
             (
           context,
@@ -1698,7 +1837,10 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
     final existing =
         product.image.trim();
 
-    if (existing.isNotEmpty) {
+    if (existing.isNotEmpty &&
+        (existing.startsWith('assets/') ||
+         existing.startsWith('http://') ||
+         existing.startsWith('https://'))) {
       return existing;
     }
 
@@ -1709,6 +1851,14 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
 
     if (name.contains('tomato')) {
       return 'assets/products/tomato.png';
+    }
+
+    if (name.contains('corn') || name.contains('maize')) {
+      return 'assets/products/corn.png';
+    }
+
+    if (name.contains('mango') || name.contains('alphonso')) {
+      return 'assets/products/mango.png';
     }
 
     if (name.contains('carrot')) {
@@ -1723,15 +1873,11 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
       return 'assets/products/onion.png';
     }
 
-    if (name.contains('spinach')) {
+    if (name.contains('spinach') || name.contains('palak')) {
       return 'assets/products/spinach.png';
     }
 
-    if (name.contains('apple')) {
-      return 'assets/products/apple.png';
-    }
-
-    if (name.contains('banana')) {
+    if (name.contains('banana') || name.contains('nendran')) {
       return 'assets/products/banana.png';
     }
 
@@ -1749,9 +1895,10 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
       return 'assets/products/cabbage.png';
     }
 
-    if (name.contains('cauliflower')) {
-      return 'assets/products/cauliflower.png';
-    }
+    if (name.contains('fruit')) return 'assets/products/fruits.png';
+    if (name.contains('grain') || name.contains('rice') || name.contains('paddy')) return 'assets/products/grains.png';
+    if (name.contains('dairy') || name.contains('milk')) return 'assets/products/dairy.png';
+    if (name.contains('veg')) return 'assets/products/vegetables.png';
 
     return '';
   }
@@ -2868,35 +3015,28 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
         children: [
           Expanded(
             child: _benefitCard(
-              Icons.eco_outlined,
+              Icons.verified_rounded,
               '100% Fresh',
               'Quality checked',
+              () => _showQualityGuaranteeSheet(context),
             ),
           ),
-
-          const SizedBox(
-            width: 8,
-          ),
-
+          const SizedBox(width: 8),
           Expanded(
             child: _benefitCard(
-              Icons
-                  .local_shipping_outlined,
+              Icons.local_shipping_rounded,
               'Fast Delivery',
               'Above ₹499',
+              () => _showLogisticsPolicySheet(context),
             ),
           ),
-
-          const SizedBox(
-            width: 8,
-          ),
-
+          const SizedBox(width: 8),
           Expanded(
             child: _benefitCard(
-              Icons
-                  .support_agent_rounded,
+              Icons.forum_rounded,
               'Chat',
               'With farmers',
+              () => _showFarmersChatSheet(context),
             ),
           ),
         ],
@@ -2908,72 +3048,385 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
     IconData icon,
     String title,
     String subtitle,
+    VoidCallback onTap,
   ) {
-    return Container(
-      height: 90,
-      padding:
-          const EdgeInsets.all(
-        10,
-      ),
-      decoration:
-          BoxDecoration(
-        color: card,
-        borderRadius:
-            BorderRadius.circular(
-          14,
-        ),
-        border: Border.all(
-          color: Colors.white
-              .withValues(
-            alpha: 0.07,
-          ),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment
-                .center,
-        children: [
-          Icon(
-            icon,
-            color: orange,
-            size: 23,
-          ),
-
-          const SizedBox(
-            height: 5,
-          ),
-
-          Text(
-            title,
-            maxLines: 1,
-            overflow:
-                TextOverflow.ellipsis,
-            style:
-                const TextStyle(
-              color:
-                  Colors.white,
-              fontSize: 8,
-              fontWeight:
-                  FontWeight
-                      .w700,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 96,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: orange.withValues(alpha: 0.25),
             ),
           ),
-
-          const SizedBox(
-            height: 2,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: orange.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: orange,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 9,
+                ),
+              ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
 
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow:
-                TextOverflow.ellipsis,
-            style:
-                const TextStyle(
-              color:
-                  Colors.white38,
-              fontSize: 7,
+  void _showQualityGuaranteeSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F1611),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          border: Border(top: BorderSide(color: Color(0xFF243426), width: 1.5)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.verified_rounded, color: Color(0xFF4ADE80), size: 26),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('100% Fresh & Quality Checked', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('KisanAI Farm-to-Buyer Quality Protocol', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _qualityCheckItem(Icons.energy_savings_leaf_rounded, 'Harvested Fresh within 24 Hours', 'Produce is harvested directly upon order confirmation, ensuring maximum nutritional value and crisp farm freshness.'),
+            const SizedBox(height: 12),
+            _qualityCheckItem(Icons.document_scanner_rounded, 'AI Computer Vision Grade Check', 'Every batch undergoes multi-spectral computer vision inspection to verify ripeness, size uniformity, and Grade A standards.'),
+            const SizedBox(height: 12),
+            _qualityCheckItem(Icons.shield_rounded, 'Zero-Damage Transit Guarantee', 'Protected packaging with active temperature monitoring ensures produce arrives with zero physical transit damage.'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF22C55E),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Got It, Back to Market', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogisticsPolicySheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F1611),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          border: Border(top: BorderSide(color: Color(0xFF243426), width: 1.5)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.local_shipping_rounded, color: orange, size: 26),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Fast Delivery & Logistics Policy', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('Free Delivery on Orders Above ₹499', style: TextStyle(color: orange, fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _qualityCheckItem(Icons.ac_unit_rounded, 'Active Cold-Chain Transport (Tata Ace Reefer)', 'Perishables such as tomatoes, bananas, and mangoes travel in dedicated 4°C active refrigerated carriers.'),
+            const SizedBox(height: 12),
+            _qualityCheckItem(Icons.alt_route_rounded, 'Real-Time Road GPS & Traffic Routing', 'Turn-by-turn road tracking along actual highways (e.g. NH83 / NH544) with live distance in km and dynamic traffic ETA.'),
+            const SizedBox(height: 12),
+            _qualityCheckItem(Icons.storefront_rounded, 'Branch A: Direct Farm Pickup (₹0 Fee)', 'Collect directly at the farm gate if you have your own vehicle. 100% free with ₹0 delivery partner fee.'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: orange,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Understand Delivery Terms', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFarmersChatSheet(BuildContext context) {
+    final List<Map<String, dynamic>> verifiedFarmers = [
+      {
+        'farmerId': 'farmer_muthusamy_01',
+        'farmerName': 'K. Muthusamy',
+        'location': 'Udumalpet Organic Farm, Tiruppur',
+        'phone': '+91 98422 11980',
+        'crop': 'Organic Tomato (Fresh Harvest)',
+        'price': 30.0,
+        'image': 'assets/products/tomato.png',
+        'rating': 4.9,
+      },
+      {
+        'farmerId': 'farmer_velusamy_02',
+        'farmerName': 'R. Velusamy',
+        'location': 'Pollachi Agro Plantation, Coimbatore',
+        'phone': '+91 97890 22340',
+        'crop': 'Fresh Farm Bananas (Nendran)',
+        'price': 40.0,
+        'image': 'assets/products/banana.png',
+        'rating': 4.8,
+      },
+      {
+        'farmerId': 'farmer_selvaraj_03',
+        'farmerName': 'S. Selvaraj',
+        'location': 'Bhavani River Farms, Erode',
+        'phone': '+91 94431 88200',
+        'crop': 'Sweet Golden Corn',
+        'price': 24.0,
+        'image': 'assets/products/corn.png',
+        'rating': 4.9,
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        height: MediaQuery.of(context).size.height * 0.65,
+        padding: const EdgeInsets.all(22),
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F1611),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          border: Border(top: BorderSide(color: Color(0xFF243426), width: 1.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.forum_rounded, color: Color(0xFF4ADE80), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Direct Chat with Farmers', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text('Select a verified farmer to negotiate or enquire', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Expanded(
+              child: ListView.separated(
+                itemCount: verifiedFarmers.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (ctx, i) {
+                  final f = verifiedFarmers[i];
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF243426)),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: const Color(0xFF22C55E).withValues(alpha: 0.2),
+                          child: const Icon(Icons.agriculture_rounded, color: Color(0xFF4ADE80)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(f['farmerName'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              const SizedBox(height: 2),
+                              Text(f['location'], style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                              const SizedBox(height: 2),
+                              Text('Active: ${f['crop']} • ₹${(f['price'] as double).toStringAsFixed(0)}/kg', style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 10, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            final dummyProduct = ProductModel(
+                              id: 'prod_${f['farmerId']}',
+                              farmerId: f['farmerId'],
+                              farmerName: f['farmerName'],
+                              name: f['crop'],
+                              category: 'Produce',
+                              price: f['price'],
+                              quantity: 500,
+                              unit: 'kg',
+                              description: 'Direct farm produce',
+                              location: f['location'],
+                              image: f['image'] ?? 'assets/images/organic_tomatoes.png',
+                              available: true,
+                              createdAt: DateTime.now(),
+                              organic: true,
+                              quality: 'Grade A',
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChatScreen(product: dummyProduct),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.chat_bubble_rounded, size: 14),
+                          label: const Text('Chat', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF22C55E),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _qualityCheckItem(IconData icon, String title, String desc) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF243426)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF4ADE80), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 3),
+                Text(desc, style: const TextStyle(color: Colors.white60, fontSize: 10, height: 1.3)),
+              ],
             ),
           ),
         ],

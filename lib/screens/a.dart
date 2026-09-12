@@ -1167,7 +1167,7 @@ class _BuyerProfileScreenState
                                 .info_outline_rounded,
 
                         title:
-                            'About Vidhai',
+                            'About KisanAI',
 
                         subtitle:
                             'Direct agricultural marketplace',
@@ -1291,7 +1291,7 @@ class _BuyerProfileScreenState
                       const Center(
                         child:
                             Text(
-                          'Vidhai • Buyer',
+                          'KisanAI • Buyer',
 
                           style:
                               TextStyle(
@@ -1504,7 +1504,7 @@ class _BuyerProfileScreenState
               ),
 
               Text(
-                'Vidhai',
+                'KisanAI',
 
                 style:
                     TextStyle(

@@ -18,7 +18,7 @@ class BuyerAuctionDetailsScreen
 class _BuyerAuctionDetailsScreenState
     extends State<BuyerAuctionDetailsScreen> {
   // ============================================================
-  // VIDHAI COLORS
+  // KISANAI COLORS
   // ============================================================
 
   static const Color orange =

@@ -14,8 +14,8 @@ class FarmerAiService {
 
     systemInstruction: Content.system(
       '''
-You are Vidhai Assistant, an AI farming assistant
-inside the Vidhai farmer application.
+You are KisanAI Assistant, an AI farming assistant
+inside the KisanAI farmer application.
 
 Your users are farmers in India, especially Tamil Nadu.
 
@@ -29,7 +29,7 @@ You help farmers with:
 - Selling crops
 - Orders
 - Wallet and earnings
-- General Vidhai app guidance
+- General KisanAI app guidance
 
 IMPORTANT RULES:
 
@@ -47,7 +47,7 @@ IMPORTANT RULES:
 
 5. Keep answers short and practical.
 
-6. When farmer-specific Vidhai data is provided,
+6. When farmer-specific KisanAI data is provided,
    always use that data instead of guessing.
 
 7. Never invent:
@@ -65,10 +65,10 @@ IMPORTANT RULES:
    diagnosis from text alone.
 
 10. For current market prices, only use prices provided
-    by the Vidhai application.
+    by the KisanAI application.
 
 11. If current market prices are unavailable,
-    tell the farmer to check the Vidhai Market section.
+    tell the farmer to check the KisanAI Market section.
 
 12. For farming advice, provide practical steps.
 
@@ -78,7 +78,7 @@ IMPORTANT RULES:
 14. Do not mention that you are receiving a "context"
     or "database information".
 
-15. You are Vidhai Assistant, not a generic chatbot.
+15. You are KisanAI Assistant, not a generic chatbot.
 
 '''
     ),
@@ -101,7 +101,7 @@ IMPORTANT RULES:
       );
 
       debugPrint(
-        'VIDHAI AI REQUEST',
+        'KISANAI AI REQUEST',
       );
 
       debugPrint(
@@ -129,7 +129,7 @@ IMPORTANT RULES:
       // --------------------------------------------------------
 
       final prompt = '''
-Here is information available from the farmer's Vidhai account.
+Here is information available from the farmer's KisanAI account.
 
 $farmerContext
 
@@ -143,7 +143,7 @@ $question
 
 Answer the farmer naturally.
 
-Use the farmer's Vidhai information when the question
+Use the farmer's KisanAI information when the question
 is related to their personal information.
 
 If the question is a general farming question,
@@ -195,7 +195,7 @@ Keep the answer simple and useful for a farmer.
       );
 
       debugPrint(
-        'VIDHAI AI ERROR',
+        'KISANAI AI ERROR',
       );
 
       debugPrint(
@@ -740,7 +740,7 @@ WEATHER
 $weatherText
 
 ==================================================
-END OF VIDHAI FARMER INFORMATION
+END OF KISANAI FARMER INFORMATION
 ==================================================
 ''';
   }
@@ -827,7 +827,7 @@ END OF VIDHAI FARMER INFORMATION
         lower.contains('429') ||
         lower.contains('resource_exhausted')) {
       return '''
-⚠️ Vidhai AI quota is currently unavailable.
+⚠️ KisanAI quota is currently unavailable.
 
 Please try again in a little while.
 ''';
@@ -841,7 +841,7 @@ Please try again in a little while.
         lower.contains('403') ||
         lower.contains('permission_denied')) {
       return '''
-⚠️ Vidhai AI permission is not configured correctly.
+⚠️ KisanAI permission is not configured correctly.
 
 Please check the Firebase AI setup.
 ''';
@@ -869,7 +869,7 @@ Please check your connection and try again.
         lower.contains('not found') ||
         lower.contains('not_found')) {
       return '''
-⚠️ The Vidhai AI model could not be found.
+⚠️ The KisanAI model could not be found.
 
 Please check the Firebase AI configuration.
 ''';
@@ -894,7 +894,7 @@ Please enable the required Firebase AI services.
     // ----------------------------------------------------------
 
     return '''
-⚠️ I could not connect to Vidhai AI.
+⚠️ I could not connect to KisanAI.
 
 DEBUG ERROR:
 $message

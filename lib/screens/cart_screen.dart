@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'checkout_screen.dart';
+import '../services/language_service.dart';
 
 import 'buyer_market_screen.dart';
 
@@ -23,6 +24,256 @@ class _CartScreenState extends State<CartScreen> {
 
   final FirebaseAuth _auth =
       FirebaseAuth.instance;
+
+  String _selectedCategory = 'All';
+  String _selectedSort = 'default';
+
+  bool get _hasCartFilters =>
+      _selectedCategory != 'All' || _selectedSort != 'default';
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  String _getSortLabel(String sort) {
+    switch (sort) {
+      case 'price_asc':
+        return tr('price_low_to_high', defaultText: 'Price: Low to High');
+      case 'price_desc':
+        return tr('price_high_to_low', defaultText: 'Price: High to Low');
+      case 'qty_desc':
+        return tr('quantity_high_to_low', defaultText: 'Qty: High to Low');
+      case 'name_asc':
+        return tr('name_a_to_z', defaultText: 'Name: A to Z');
+      default:
+        return tr('default_order', defaultText: 'Default');
+    }
+  }
+
+  void _showFilterAndSortModal() {
+    String tempCat = _selectedCategory;
+    String tempSort = _selectedSort;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (modalContext, setModalState) {
+            Widget buildChoiceChip(
+              String label,
+              bool isSelected,
+              VoidCallback onSelected,
+            ) {
+              return GestureDetector(
+                onTap: onSelected,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? orange.withValues(alpha: .2)
+                        : const Color(0xFF1E1E1E),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? orange : Colors.white12,
+                      width: isSelected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: isSelected ? orange : Colors.white70,
+                      fontSize: 12,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(ctx).padding.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        tr('filter_and_sort', defaultText: 'Filter & Sort'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            tempCat = 'All';
+                            tempSort = 'default';
+                          });
+                        },
+                        child: Text(
+                          tr('reset', defaultText: 'Reset'),
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 12),
+                  Text(
+                    tr('category', defaultText: 'Category'),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      'All',
+                      'Vegetables',
+                      'Fruits',
+                      'Grains',
+                      'Spices',
+                    ].map((cat) {
+                      final isSelected =
+                          tempCat.toLowerCase() == cat.toLowerCase();
+                      return buildChoiceChip(
+                        tr(cat.toLowerCase(), defaultText: cat),
+                        isSelected,
+                        () => setModalState(() => tempCat = cat),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    tr('sort_by', defaultText: 'Sort By'),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      {
+                        'key': 'default',
+                        'label': tr('default_order', defaultText: 'Default')
+                      },
+                      {
+                        'key': 'price_asc',
+                        'label': tr('price_low_to_high',
+                            defaultText: 'Price: Low to High')
+                      },
+                      {
+                        'key': 'price_desc',
+                        'label': tr('price_high_to_low',
+                            defaultText: 'Price: High to Low')
+                      },
+                      {
+                        'key': 'qty_desc',
+                        'label': tr('quantity_high_to_low',
+                            defaultText: 'Quantity: High to Low')
+                      },
+                      {
+                        'key': 'name_asc',
+                        'label': tr('name_a_to_z', defaultText: 'Name: A to Z')
+                      },
+                    ].map((item) {
+                      final isSelected = tempSort == item['key'];
+                      return buildChoiceChip(
+                        item['label']!,
+                        isSelected,
+                        () => setModalState(() => tempSort = item['key']!),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: orange,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _selectedCategory = tempCat;
+                          _selectedSort = tempSort;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                      child: Text(
+                        tr('apply', defaultText: 'Apply'),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   // ============================================================
   // FIRESTORE CART
@@ -134,6 +385,59 @@ class _CartScreenState extends State<CartScreen> {
                     delivery +
                     packaging;
 
+            var displayedDocs =
+                List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(docs);
+
+            if (_selectedCategory != 'All') {
+              displayedDocs = displayedDocs.where((doc) {
+                final data = doc.data();
+                final cat = (data['category'] ?? '').toString().toLowerCase();
+                final name = (data['name'] ?? '').toString().toLowerCase();
+                final filterCat = _selectedCategory.toLowerCase();
+                if (filterCat == 'vegetables') {
+                  return cat.contains('veg') ||
+                      name.contains('tomato') ||
+                      name.contains('potato') ||
+                      name.contains('onion') ||
+                      name.contains('brinjal') ||
+                      name.contains('carrot') ||
+                      name.contains('chilli');
+                } else if (filterCat == 'fruits') {
+                  return cat.contains('fruit') ||
+                      name.contains('banana') ||
+                      name.contains('mango') ||
+                      name.contains('apple') ||
+                      name.contains('orange');
+                } else if (filterCat == 'grains') {
+                  return cat.contains('grain') ||
+                      name.contains('rice') ||
+                      name.contains('wheat') ||
+                      name.contains('dal');
+                } else if (filterCat == 'spices') {
+                  return cat.contains('spice') ||
+                      name.contains('turmeric') ||
+                      name.contains('pepper') ||
+                      name.contains('cardamom');
+                }
+                return cat.contains(filterCat) || name.contains(filterCat);
+              }).toList();
+            }
+
+            if (_selectedSort == 'price_asc') {
+              displayedDocs.sort((a, b) =>
+                  _double(a.data()['price']).compareTo(_double(b.data()['price'])));
+            } else if (_selectedSort == 'price_desc') {
+              displayedDocs.sort((a, b) =>
+                  _double(b.data()['price']).compareTo(_double(a.data()['price'])));
+            } else if (_selectedSort == 'qty_desc') {
+              displayedDocs.sort((a, b) => _double(b.data()['quantity'])
+                  .compareTo(_double(a.data()['quantity'])));
+            } else if (_selectedSort == 'name_asc') {
+              displayedDocs.sort((a, b) => (a.data()['name'] ?? '')
+                  .toString()
+                  .compareTo((b.data()['name'] ?? '').toString()));
+            }
+
             return Column(
               children: [
                 // ==================================================
@@ -171,10 +475,10 @@ class _CartScreenState extends State<CartScreen> {
 
                             Row(
                               children: [
-                                const Expanded(
+                                Expanded(
                                   child: Text(
-                                    'Your Items',
-                                    style: TextStyle(
+                                    tr('your_items', defaultText: 'Your Items'),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 21,
                                       fontWeight:
@@ -182,6 +486,50 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                   ),
                                 ),
+
+                                GestureDetector(
+                                  onTap: _showFilterAndSortModal,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: _hasCartFilters
+                                          ? orange.withValues(alpha: .18)
+                                          : card,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: _hasCartFilters
+                                            ? orange
+                                            : Colors.white12,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.tune_rounded,
+                                          color: _hasCartFilters
+                                              ? orange
+                                              : Colors.white70,
+                                          size: 15,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          tr('filter_sort',
+                                              defaultText: 'Filter & Sort'),
+                                          style: TextStyle(
+                                            color: _hasCartFilters
+                                                ? orange
+                                                : Colors.white70,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 10),
 
                                 GestureDetector(
                                   onTap:
@@ -212,6 +560,75 @@ class _CartScreenState extends State<CartScreen> {
                               ],
                             ),
 
+                            if (_hasCartFilters) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                children: [
+                                  if (_selectedCategory != 'All')
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: orange.withValues(alpha: .15),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: orange.withValues(alpha: .3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            _selectedCategory,
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 11),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          GestureDetector(
+                                            onTap: () => setState(
+                                                () => _selectedCategory = 'All'),
+                                            child: const Icon(Icons.close,
+                                                size: 13, color: orange),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (_selectedSort != 'default')
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: orange.withValues(alpha: .15),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: orange.withValues(alpha: .3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            _getSortLabel(_selectedSort),
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 11),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          GestureDetector(
+                                            onTap: () => setState(
+                                                () => _selectedSort = 'default'),
+                                            child: const Icon(Icons.close,
+                                                size: 13, color: orange),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+
                             const SizedBox(
                               height: 12,
                             ),
@@ -220,16 +637,60 @@ class _CartScreenState extends State<CartScreen> {
                             // CART ITEMS
                             // =================================================
 
-                            ...docs.map(
-                              (doc) => Padding(
+                            if (displayedDocs.isEmpty && docs.isNotEmpty)
+                              Padding(
                                 padding:
-                                    const EdgeInsets.only(
-                                  bottom: 12,
+                                    const EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      const Icon(
+                                        Icons.filter_alt_off_rounded,
+                                        color: Colors.white38,
+                                        size: 36,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        tr('no_items_match_filter',
+                                            defaultText:
+                                                'No items match your filter'),
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedCategory = 'All';
+                                            _selectedSort = 'default';
+                                          });
+                                        },
+                                        child: Text(
+                                          tr('clear_filters',
+                                              defaultText: 'Clear Filters'),
+                                          style: const TextStyle(
+                                            color: orange,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child:
-                                    _buildCartItem(doc),
+                              )
+                            else
+                              ...displayedDocs.map(
+                                (doc) => Padding(
+                                  padding:
+                                      const EdgeInsets.only(
+                                    bottom: 12,
+                                  ),
+                                  child:
+                                      _buildCartItem(doc),
+                                ),
                               ),
-                            ),
 
                             const SizedBox(
                               height: 5,
@@ -580,7 +1041,7 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        name,
+                        tr(name),
                         maxLines: 1,
                         overflow:
                             TextOverflow.ellipsis,
@@ -920,18 +1381,19 @@ class _CartScreenState extends State<CartScreen> {
     String image,
     String name,
   ) {
-    if (image.startsWith(
-          'http://',
-        ) ||
-        image.startsWith(
-          'https://',
-        )) {
+    if (image.startsWith('http://') || image.startsWith('https://')) {
       return Image.network(
         image,
+        cacheWidth: 200,
         fit: BoxFit.cover,
-        errorBuilder:
-            (_, __, ___) =>
-                _imagePlaceholder(name),
+        errorBuilder: (_, __, ___) => _imagePlaceholder(name),
+      );
+    } else if (image.startsWith('assets/')) {
+      return Image.asset(
+        image,
+        cacheWidth: 200,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _imagePlaceholder(name),
       );
     }
 

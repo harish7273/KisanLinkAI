@@ -4,6 +4,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
+import 'services/language_service.dart';
 
 // ============================================================
 // SCREENS
@@ -47,6 +48,12 @@ import 'screens/delivery/delivery_home_screen.dart';
 
 import 'screens/ui_showcase_screen.dart';
 import 'screens/add_product_screen.dart';
+import 'screens/kisan_voice_screen.dart';
+import 'screens/quality_scanner_screen.dart';
+import 'screens/kisan_pool_screen.dart';
+import 'screens/offline_sync_screen.dart';
+
+import 'package:flutter/foundation.dart';
 
 // ============================================================
 // MAIN
@@ -64,24 +71,21 @@ Future<void> main() async {
   );
 
   // ==========================================================
-  // FIREBASE APP CHECK
-  //
-  // DEBUG PROVIDER IS FOR LOCAL DEVELOPMENT / EMULATOR
+  // APP CHECK (DISABLED IN DEBUG TO AVOID ERRORS)
   // ==========================================================
 
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.debug,
-  );
+  if (!kDebugMode) {
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.playIntegrity,
+    );
+  }
 
   // ==========================================================
-  // NOTIFICATION INITIALIZATION
+  // NOTIFICATIONS INITIALIZATION
   // ==========================================================
 
   await NotificationService.initialize();
-
-  // ==========================================================
-  // START APPLICATION
-  // ==========================================================
+  await LanguageService.instance.initialize();
 
   runApp(
     const FarmDirectApp(),
@@ -89,7 +93,7 @@ Future<void> main() async {
 }
 
 // ============================================================
-// FARM DIRECT APP
+// ROOT APPLICATION
 // ============================================================
 
 class FarmDirectApp extends StatelessWidget {
@@ -99,10 +103,14 @@ class FarmDirectApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FarmDirect',
+    return ValueListenableBuilder<String>(
+      valueListenable: LanguageService.currentLocaleNotifier,
+      builder: (context, locale, _) {
+        return MaterialApp(
+          locale: Locale(locale),
+          title: 'KisanAI',
 
-      debugShowCheckedModeBanner: false,
+          debugShowCheckedModeBanner: false,
 
       // ========================================================
       // THEME
@@ -250,6 +258,28 @@ class FarmDirectApp extends StatelessWidget {
         '/delivery-home': (context) {
           return const DeliveryHomeScreen();
         },
+
+        // ======================================================
+        // KISAN AI ROUTES
+        // ======================================================
+
+        '/kisan-voice': (context) {
+          return const KisanVoiceScreen();
+        },
+
+        '/quality-scanner': (context) {
+          return const QualityScannerScreen();
+        },
+
+        '/kisan-pool': (context) {
+          return const KisanPoolScreen();
+        },
+
+        '/offline-sync': (context) {
+          return const OfflineSyncScreen();
+        },
+      },
+    );
       },
     );
   }

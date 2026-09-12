@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../constants/colors.dart';
+import '../services/language_service.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -15,36 +16,34 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
   final languages = [
     {
+      "code": "en",
       "title": "English",
       "subtitle": "Continue in English",
       "flag": "🇬🇧",
     },
     {
+      "code": "ta",
       "title": "தமிழ்",
       "subtitle": "தமிழில் தொடரவும்",
       "flag": "🇮🇳",
     },
     {
+      "code": "hi",
       "title": "हिन्दी",
       "subtitle": "हिंदी में जारी रखें",
       "flag": "🇮🇳",
     },
-    {
-      "title": "తెలుగు",
-      "subtitle": "తెలుగులో కొనసాగండి",
-      "flag": "🇮🇳",
-    },
-    {
-      "title": "ಕನ್ನಡ",
-      "subtitle": "ಕನ್ನಡದಲ್ಲಿ ಮುಂದುವರಿಯಿರಿ",
-      "flag": "🇮🇳",
-    },
-    {
-      "title": "മലയാളം",
-      "subtitle": "മലയാളത്തിൽ തുടരുക",
-      "flag": "🇮🇳",
-    },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final cur = LanguageService.instance.currentCode;
+    final idx = languages.indexWhere((l) => l["code"] == cur);
+    if (idx != -1) {
+      selectedIndex = idx;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +57,16 @@ class _LanguageScreenState extends State<LanguageScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 22),
             child: Column(
               children: [
+                if (Navigator.canPop(context))
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white70, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
 
                 Container(
                   width: 75,
@@ -78,9 +85,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 const SizedBox(height: 25),
 
                 Text(
-                  "Choose Your Language",
+                  tr("choose_language"),
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
-                    fontSize: 32,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
@@ -89,11 +97,11 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 const SizedBox(height: 10),
 
                 Text(
-                  "Select your preferred language",
+                  tr("select_preferred_language"),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     color: Colors.white70,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
 
@@ -114,6 +122,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                             setState(() {
                               selectedIndex = index;
                             });
+                            LanguageService.instance.setLanguage(language["code"]!);
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
@@ -194,14 +203,21 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     ),
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, "/role");
+                        final code = languages[selectedIndex]["code"]!;
+                        LanguageService.instance.setLanguage(code);
+                        final isFromSettings = ModalRoute.of(context)?.settings.arguments == 'settings';
+                        if (isFromSettings && Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushReplacementNamed(context, "/role");
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                       ),
                       child: Text(
-                        "Continue",
+                        tr("continue_button"),
                         style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

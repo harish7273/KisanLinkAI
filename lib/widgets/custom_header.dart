@@ -41,18 +41,26 @@ class CustomHeader extends StatelessWidget {
 
           const Spacer(),
 
-          const Icon(
-            Icons.eco_rounded,
-            color: Color(0xFF017422),
-            size: 28,
+          ClipOval(
+            child: Image.asset(
+              'assets/images/kisan_logo.png',
+              width: 28,
+              height: 28,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.spa_rounded,
+                color: Color(0xFF017422),
+                size: 28,
+              ),
+            ),
           ),
 
           const SizedBox(width: 8),
 
           Text(
-            "VIDHAI",
+            "KisanAI",
             style: GoogleFonts.outfit(
-              color:Color(0xFF017422),
+              color: const Color(0xFF00E676),
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),

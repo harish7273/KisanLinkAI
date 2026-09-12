@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'buyer_login_screen.dart';
 import 'delivery/delivery_login_screen.dart';
+import '../widgets/language_switch_button.dart';
+import '../services/language_service.dart';
 
 class RoleScreen extends StatefulWidget {
   const RoleScreen({super.key});
@@ -21,6 +23,22 @@ class _RoleScreenState extends State<RoleScreen> {
   static const Color buyerLight = Color(0xFFFFE6B9);
 
   static const Color deliveryYellow = Color(0xFFFFC107);
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,11 +99,11 @@ class _RoleScreenState extends State<RoleScreen> {
               child: Column(
                 children: [
                   // Language
-                  SizedBox(
+                  const SizedBox(
                     height: 48,
                     child: Align(
                       alignment: Alignment.topRight,
-                      child: _languageButton(),
+                      child: LanguageSwitchButton(compact: true),
                     ),
                   ),
 
@@ -94,11 +112,12 @@ class _RoleScreenState extends State<RoleScreen> {
 
                   const SizedBox(height: 12),
 
-                  const Text(
-                    'Welcome!',
-                    style: TextStyle(
+                  Text(
+                    tr('welcome'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 40,
+                      fontSize: 38,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -106,9 +125,10 @@ class _RoleScreenState extends State<RoleScreen> {
                   const SizedBox(height: 6),
 
                   Text(
-                    'Choose your role to get started',
+                    tr('welcome_subtitle'),
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
-                      fontSize: 16,
+                      fontSize: 15,
                       color: Colors.white.withValues(alpha: 0.88),
                     ),
                   ),
@@ -164,50 +184,7 @@ class _RoleScreenState extends State<RoleScreen> {
     );
   }
 
-  // ============================================================
-  // LANGUAGE
-  // ============================================================
 
-  Widget _languageButton() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 9,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.20),
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.language_rounded,
-            color: Colors.white,
-            size: 21,
-          ),
-          const SizedBox(width: 7),
-          Text(
-            'English',
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 5),
-          const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: Colors.white,
-            size: 19,
-          ),
-        ],
-      ),
-    );
-  }
 
   // ============================================================
   // LOGO
@@ -221,7 +198,7 @@ class _RoleScreenState extends State<RoleScreen> {
           height: 48,
           width: 70,
           child: Image.asset(
-            'assets/images/vidhai_logo.png',
+            'assets/images/kisan_logo.png',
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
               return const Icon(
@@ -236,7 +213,7 @@ class _RoleScreenState extends State<RoleScreen> {
         const SizedBox(height: 1),
 
         Text(
-          'Vidhai',
+          'KisanAI',
           style: GoogleFonts.lora(
             fontSize: 43,
             fontWeight: FontWeight.w700,
@@ -257,7 +234,7 @@ class _RoleScreenState extends State<RoleScreen> {
             ),
             const SizedBox(width: 5),
             Text(
-              'Fresh from Farms',
+              tr('fresh_from_farms', defaultText: 'Fresh from Farms'),
               style: GoogleFonts.poppins(
                 color: Colors.white.withValues(alpha: 0.80),
                 fontSize: 13,
@@ -282,14 +259,13 @@ class _RoleScreenState extends State<RoleScreen> {
 
   Widget _buildFarmerCard() {
     return RoleCard(
-      title: 'I am a Farmer',
-      description:
-          'Sell your produce,\nconnect with buyers.',
+      title: tr('farmer'),
+      description: tr('farmer_role_desc', defaultText: 'Sell your produce,\nconnect with buyers.'),
       image: 'assets/images/farmer.png',
       icon: Icons.agriculture_rounded,
       accentColor: farmerGreen,
       lightColor: farmerLight,
-      buttonText: 'Continue as Farmer',
+      buttonText: tr('continue_button'),
       selected: selectedRole == 0,
       onTap: () {
         setState(() {
@@ -310,14 +286,13 @@ class _RoleScreenState extends State<RoleScreen> {
 
   Widget _buildBuyerCard() {
     return RoleCard(
-      title: 'I am a Buyer',
-      description:
-          'Buy fresh produce\ndirect from farmers.',
+      title: tr('buyer'),
+      description: tr('buyer_role_desc', defaultText: 'Buy fresh produce\ndirect from farmers.'),
       image: 'assets/images/buyer.png',
       icon: Icons.shopping_basket_rounded,
       accentColor: buyerOrange,
       lightColor: buyerLight,
-      buttonText: 'Continue as Buyer',
+      buttonText: tr('continue_button'),
       selected: selectedRole == 1,
 
       onTap: () {
@@ -379,11 +354,24 @@ class _RoleScreenState extends State<RoleScreen> {
             Container(
               width: 50,
               height: 50,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: deliveryYellow,
                 shape: BoxShape.circle,
+                border: Border.all(color: deliveryYellow, width: 1.5),
               ),
-              child: const Icon(Icons.electric_moped_rounded, color: Colors.black, size: 26),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/delivery_partner_truck.jpg',
+                  fit: BoxFit.cover,
+                  width: 50,
+                  height: 50,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.local_shipping_rounded,
+                    color: Colors.black,
+                    size: 26,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -391,7 +379,7 @@ class _RoleScreenState extends State<RoleScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'I am a Delivery Partner',
+                    tr('delivery_partner'),
                     style: GoogleFonts.outfit(
                       color: deliveryYellow,
                       fontSize: 16,
@@ -400,7 +388,7 @@ class _RoleScreenState extends State<RoleScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Deliver fresh farm produce & earn on every trip.',
+                    tr('delivery_role_desc', defaultText: 'Deliver fresh farm produce & earn on every trip.'),
                     style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11),
                   ),
                 ],
@@ -438,8 +426,8 @@ class _RoleScreenState extends State<RoleScreen> {
           Expanded(
             child: _featureItem(
               Icons.verified_user_rounded,
-              'Trusted',
-              'Safe & secure',
+              tr('trusted', defaultText: 'Trusted'),
+              tr('safe_and_secure', defaultText: 'Safe & secure'),
             ),
           ),
 
@@ -448,8 +436,8 @@ class _RoleScreenState extends State<RoleScreen> {
           Expanded(
             child: _featureItem(
               Icons.eco_rounded,
-              'Fresh',
-              'Farm quality',
+              tr('fresh', defaultText: 'Fresh'),
+              tr('farm_quality', defaultText: 'Farm quality'),
             ),
           ),
 
@@ -458,8 +446,8 @@ class _RoleScreenState extends State<RoleScreen> {
           Expanded(
             child: _featureItem(
               Icons.local_shipping_rounded,
-              'Fast',
-              'Quick delivery',
+              tr('fast', defaultText: 'Fast'),
+              tr('quick_delivery', defaultText: 'Quick delivery'),
             ),
           ),
         ],
@@ -481,23 +469,29 @@ class _RoleScreenState extends State<RoleScreen> {
           size: 30,
         ),
         const SizedBox(height: 4),
-        Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.poppins(
-            color: Colors.white.withValues(alpha: 0.60),
-            fontSize: 9,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              color: Colors.white.withValues(alpha: 0.60),
+              fontSize: 9,
+            ),
           ),
         ),
       ],
@@ -559,7 +553,7 @@ class _RoleScreenState extends State<RoleScreen> {
                   CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Together, let’s grow a better tomorrow 💚',
+                  tr('together_grow_better', defaultText: 'Together, let’s grow a better tomorrow 💚'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
@@ -572,7 +566,7 @@ class _RoleScreenState extends State<RoleScreen> {
                 const SizedBox(height: 2),
 
                 Text(
-                  'Support farmers. Eat fresh. Live healthy.',
+                  tr('support_farmers_eat_fresh', defaultText: 'Support farmers. Eat fresh. Live healthy.'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(

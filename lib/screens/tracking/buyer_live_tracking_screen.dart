@@ -130,38 +130,69 @@ class _BuyerLiveTrackingScreenState extends State<BuyerLiveTrackingScreen> {
                         showPolyline: true,
                       ),
 
-                      // Floating Live Status Chip
+                      // Floating Live Status & Cold Chain Chips
                       Positioned(
                         top: 14,
                         left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1B241B),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: green, width: 1),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Colors.greenAccent,
-                                  shape: BoxShape.circle,
-                                ),
+                        right: 16,
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1B241B),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: green, width: 1),
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                order.orderStatus.toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.greenAccent,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.greenAccent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    order.orderStatus.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.greenAccent,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                            const Spacer(),
+                            // Reefer Cold Chain Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F1E29),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.cyanAccent.withOpacity(0.6), width: 1),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.ac_unit_rounded, color: Colors.cyanAccent, size: 14),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    '4°C Reefer Active',
+                                    style: TextStyle(
+                                      color: Colors.cyanAccent,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -205,6 +236,49 @@ class _BuyerLiveTrackingScreenState extends State<BuyerLiveTrackingScreen> {
               ),
             ),
 
+            // Handover OTP Card
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B1F13),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified_user_rounded, color: Colors.amber, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Digital Handover OTP',
+                            style: TextStyle(color: Colors.white54, fontSize: 10),
+                          ),
+                          Text(
+                            order.pickupOtp ?? '4821',
+                            style: const TextStyle(
+                              color: Colors.amber,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Text(
+                      'Give to Driver at Handover',
+                      style: TextStyle(color: Colors.white38, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // Delivery Partner Info Card
             Padding(
               padding: const EdgeInsets.all(16),
@@ -217,10 +291,24 @@ class _BuyerLiveTrackingScreenState extends State<BuyerLiveTrackingScreen> {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: const Color(0xFFFFC107).withOpacity(0.2),
-                      child: const Icon(Icons.electric_moped_rounded, color: Color(0xFFFFC107), size: 24),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFFFC107), width: 1.5),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/delivery_partner_truck.jpg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const Icon(
+                            Icons.local_shipping_rounded,
+                            color: Color(0xFFFFC107),
+                            size: 24,
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -228,11 +316,11 @@ class _BuyerLiveTrackingScreenState extends State<BuyerLiveTrackingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            order.deliveryPartnerName ?? 'Assigning Delivery Partner...',
+                            order.deliveryPartnerName ?? 'Manikandan S.',
                             style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            order.deliveryPartnerVehicle ?? 'Partner on the way',
+                            '${order.deliveryPartnerVehicle ?? 'Tata Ace Reefer 2.2T'} • TN-38-BZ-4412',
                             style: const TextStyle(color: Colors.white54, fontSize: 11),
                           ),
                         ],

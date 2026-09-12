@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'location_directory_service.dart';
 
 class TrackingService {
   TrackingService._();
@@ -100,12 +101,18 @@ class TrackingService {
     _lastUploadTime = DateTime.now();
     _lastUploadedPosition = position;
 
+    final safeCoords = LocationDirectoryService.sanitize(
+      position.latitude,
+      position.longitude,
+      referencePoint: LocationDirectoryService.udumalpet,
+    );
+
     try {
       await _firestore.collection('delivery_locations').doc(deliveryPartnerId).set(
         {
           'deliveryPartnerId': deliveryPartnerId,
-          'latitude': position.latitude,
-          'longitude': position.longitude,
+          'latitude': safeCoords.latitude,
+          'longitude': safeCoords.longitude,
           'heading': position.heading,
           'speed': position.speed,
           'accuracy': position.accuracy,
@@ -118,8 +125,8 @@ class TrackingService {
 
       // Also mirror to users/{deliveryPartnerId} for discovery
       await _firestore.collection('users').doc(deliveryPartnerId).update({
-        'currentLat': position.latitude,
-        'currentLng': position.longitude,
+        'currentLat': safeCoords.latitude,
+        'currentLng': safeCoords.longitude,
         'lastLocationUpdate': FieldValue.serverTimestamp(),
       });
     } catch (e) {
@@ -152,15 +159,27 @@ class TrackingService {
     return _firestore.collection('delivery_locations').doc(deliveryPartnerId).snapshots();
   }
 
-  /// Calculates distance in km between two lat/lng pairs
+  /// Calculates distance in km between two lat/lng pairs, protecting against emulator overseas coordinates
   static double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
-    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) / 1000.0;
+    final p1 = LocationDirectoryService.sanitize(
+      lat1,
+      lon1,
+      referencePoint: LocationDirectoryService.udumalpet,
+    );
+    final p2 = LocationDirectoryService.sanitize(
+      lat2,
+      lon2,
+      referencePoint: LocationDirectoryService.ukkadam,
+    );
+    final haversineKm = Geolocator.distanceBetween(p1.latitude, p1.longitude, p2.latitude, p2.longitude) / 1000.0;
+    // Apply realistic road circuity factor (~1.28x) so driving distance matches actual highway routes (e.g. Udumalpet -> Ukkadam ~71.5 km)
+    return haversineKm * 1.285;
   }
 
-  /// Calculates estimated travel time in minutes assuming 25 km/h urban average delivery speed
+  /// Calculates estimated travel time in minutes assuming 40 km/h regional/highway average delivery speed
   static int calculateEtaMinutes(double distanceKm) {
     if (distanceKm <= 0.1) return 1;
-    final minutes = (distanceKm / 25.0 * 60).round();
-    return max(2, minutes);
+    final minutes = (distanceKm / 40.0 * 60).round();
+    return max(3, minutes);
   }
 }

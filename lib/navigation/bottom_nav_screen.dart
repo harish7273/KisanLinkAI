@@ -13,6 +13,7 @@ import '../screens/sell_screen.dart';
 import '../screens/farmer_orders_screen.dart';
 import '../screens/farmer_chats_screen.dart';
 import '../screens/auction_screen.dart';
+import '../services/language_service.dart';
 
 // ============================================================
 // FARMER BOTTOM NAVIGATION
@@ -36,6 +37,22 @@ class _BottomNavScreenState
   // ============================================================
 
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
 
   // ============================================================
   // COLORS
@@ -155,7 +172,7 @@ class _BottomNavScreenState
               Expanded(
                 child: _buildNavItem(
                   icon: Icons.home_rounded,
-                  label: 'Home',
+                  label: tr('nav_home'),
                   index: 0,
                 ),
               ),
@@ -167,7 +184,7 @@ class _BottomNavScreenState
               Expanded(
                 child: _buildNavItem(
                   icon: Icons.agriculture_rounded,
-                  label: 'Products',
+                  label: tr('nav_products'),
                   index: 1,
                 ),
               ),
@@ -187,7 +204,7 @@ class _BottomNavScreenState
               Expanded(
                 child: _buildNavItem(
                   icon: Icons.gavel_rounded,
-                  label: 'Auction',
+                  label: tr('nav_auction'),
                   index: 3,
                 ),
               ),
@@ -221,7 +238,7 @@ class _BottomNavScreenState
     if (currentUser == null) {
       return _buildNavItem(
         icon: Icons.assignment_rounded,
-        label: 'Orders',
+        label: tr('nav_orders'),
         index: 2,
         badge: 0,
       );
@@ -265,7 +282,7 @@ class _BottomNavScreenState
 
         return _buildNavItem(
           icon: Icons.assignment_rounded,
-          label: 'Orders',
+          label: tr('nav_orders'),
           index: 2,
           badge: orderCount,
         );
@@ -288,7 +305,7 @@ class _BottomNavScreenState
     if (currentUser == null) {
       return _buildNavItem(
         icon: Icons.chat_bubble_outline_rounded,
-        label: 'Messages',
+        label: tr('nav_messages'),
         index: 4,
         badge: 0,
       );
@@ -305,7 +322,7 @@ class _BottomNavScreenState
 
     return _buildNavItem(
       icon: Icons.chat_bubble_outline_rounded,
-      label: 'Messages',
+      label: tr('nav_messages'),
       index: 4,
       badge: 0,
     );

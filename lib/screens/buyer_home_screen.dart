@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/product_model.dart';
 import '../services/product_service.dart';
+import '../services/language_service.dart';
+import '../widgets/language_switch_button.dart';
 import 'role_screen.dart';
 import 'buyer_auction_screen.dart';
 
@@ -63,6 +65,22 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       "value": "Oil Seed",
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
 
   // ============================================================
   // BUILD
@@ -305,7 +323,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           ),
 
           // --------------------------------------------------------
-          // VIDHAI LOGO
+          // KISANAI LOGO
           // --------------------------------------------------------
 
           Expanded(
@@ -314,14 +332,23 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   MainAxisSize.min,
 
               children: [
-                const Icon(
-                  Icons.eco_rounded,
-                  color: orange,
-                  size: 31,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/images/kisan_logo.png',
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.eco_rounded,
+                      color: orange,
+                      size: 31,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(
-                  width: 3,
+                  width: 6,
                 ),
 
                 Flexible(
@@ -334,7 +361,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
                     children: [
                       const Text(
-                        "Vidhai",
+                        "KisanAI",
                         maxLines: 1,
                         overflow:
                             TextOverflow.ellipsis,
@@ -348,7 +375,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       ),
 
                       Text(
-                        "Fresh from Farms",
+                        tr("fresh_from_farms", defaultText: "Fresh from Farms"),
                         maxLines: 1,
                         overflow:
                             TextOverflow.ellipsis,
@@ -421,6 +448,12 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
               ),
             ],
           ),
+
+          const SizedBox(
+            width: 7,
+          ),
+
+          const LanguageSwitchButton(compact: true),
 
           const SizedBox(
             width: 7,
@@ -573,14 +606,14 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     // TITLE
                     // ==================================================
 
-                    const Align(
+                    Align(
                       alignment:
                           Alignment.centerLeft,
 
                       child: Text(
-                        "Menu",
+                        tr("menu", defaultText: "Menu"),
 
-                        style: TextStyle(
+                        style: const TextStyle(
                           color:
                               Colors.white,
                           fontSize: 21,
@@ -630,10 +663,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                         ),
                       ),
 
-                      title: const Text(
-                        "Auctions",
+                      title: Text(
+                        tr("auctions", defaultText: "Auctions"),
 
-                        style: TextStyle(
+                        style: const TextStyle(
                           color:
                               Colors.white,
                           fontSize: 15,
@@ -643,10 +676,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       ),
 
                       subtitle:
-                          const Text(
-                        "Bid on fresh products",
+                          Text(
+                        tr("bid_fresh_products", defaultText: "Bid on fresh products"),
 
-                        style: TextStyle(
+                        style: const TextStyle(
                           color:
                               Colors.white38,
                           fontSize: 10,
@@ -785,10 +818,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                         ),
                       ),
 
-                      title: const Text(
-                        "Logout",
+                      title: Text(
+                        tr("logout", defaultText: "Logout"),
 
-                        style: TextStyle(
+                        style: const TextStyle(
                           color:
                               Colors.redAccent,
                           fontSize: 15,
@@ -798,10 +831,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                       ),
 
                       subtitle:
-                          const Text(
-                        "Sign out of your account",
+                          Text(
+                        tr("logout_subtitle", defaultText: "Sign out of your account"),
 
-                        style: TextStyle(
+                        style: const TextStyle(
                           color:
                               Colors.white30,
                           fontSize: 10,
@@ -876,7 +909,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       ),
 
       title: Text(
-        title,
+        tr(title),
 
         style: const TextStyle(
           color: Colors.white,
@@ -918,10 +951,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             ),
           ),
 
-          title: const Text(
-            "Logout?",
+          title: Text(
+            tr("logout_dialog_title", defaultText: "Logout?"),
 
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 19,
               fontWeight:
@@ -929,10 +962,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             ),
           ),
 
-          content: const Text(
-            "Are you sure you want to logout from Vidhai?",
+          content: Text(
+            tr("logout_dialog_msg", defaultText: "Are you sure you want to logout from KisanAI?"),
 
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white54,
               fontSize: 12,
               height: 1.4,
@@ -947,10 +980,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                 );
               },
 
-              child: const Text(
-                "Cancel",
+              child: Text(
+                tr("cancel", defaultText: "Cancel"),
 
-                style: TextStyle(
+                style: const TextStyle(
                   color:
                       Colors.white54,
                 ),
@@ -984,8 +1017,8 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
               ),
 
               child:
-                  const Text(
-                "Logout",
+                  Text(
+                tr("logout", defaultText: "Logout"),
               ),
             ),
           ],
@@ -1075,9 +1108,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             width: 12,
           ),
 
-          const Expanded(
+          Expanded(
             child: TextField(
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
               ),
 
@@ -1087,10 +1120,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     InputBorder.none,
 
                 hintText:
-                    "Search fruits, vegetables...",
+                    tr("search_placeholder", defaultText: "Search fruits, vegetables..."),
 
                 hintStyle:
-                    TextStyle(
+                    const TextStyle(
                   color:
                       Colors.white54,
                   fontSize: 14,
@@ -1228,11 +1261,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   CrossAxisAlignment.start,
 
               children: [
-                const Text(
-                  "Eat Fresh,",
+                Text(
+                  tr("eat_fresh", defaultText: "Eat Fresh,"),
 
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         Colors.white,
                     fontSize: 26,
@@ -1241,11 +1274,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   ),
                 ),
 
-                const Text(
-                  "Stay Healthy",
+                Text(
+                  tr("stay_healthy", defaultText: "Stay Healthy"),
 
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color: orange,
                     fontSize: 26,
                     fontWeight:
@@ -1257,12 +1290,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   height: 5,
                 ),
 
-                const Text(
-                  "Handpicked produce\n"
-                  "directly from farmers 🌱",
+                Text(
+                  tr("hero_subtitle", defaultText: "Handpicked produce\ndirectly from farmers 🌱"),
 
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         Colors.white70,
                     fontSize: 14,
@@ -1308,16 +1340,16 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     ),
 
                     child:
-                        const Row(
+                        Row(
                       mainAxisSize:
                           MainAxisSize.min,
 
                       children: [
                         Text(
-                          "Shop Now",
+                          tr("shop_now", defaultText: "Shop Now"),
 
                           style:
-                              TextStyle(
+                              const TextStyle(
                             fontWeight:
                                 FontWeight
                                     .bold,
@@ -1325,11 +1357,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                           ),
                         ),
 
-                        SizedBox(
+                        const SizedBox(
                           width: 6,
                         ),
 
-                        Icon(
+                        const Icon(
                           Icons
                               .arrow_forward_rounded,
                           size: 17,
@@ -1402,7 +1434,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       children: [
         Expanded(
           child: Text(
-            title,
+            tr(title),
 
             style:
                 const TextStyle(
@@ -1415,13 +1447,13 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         ),
 
         if (showSeeAll)
-          const Row(
+          Row(
             children: [
               Text(
-                "See All",
+                tr("see_all", defaultText: "See All"),
 
                 style:
-                    TextStyle(
+                    const TextStyle(
                   color: orange,
                   fontSize: 13,
                   fontWeight:
@@ -1429,11 +1461,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                 ),
               ),
 
-              SizedBox(
+              const SizedBox(
                 width: 4,
               ),
 
-              Icon(
+              const Icon(
                 Icons
                     .arrow_forward_ios_rounded,
                 color: orange,
@@ -1548,9 +1580,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   ),
 
                   Text(
-                    category[
-                            "name"]
-                        as String,
+                    tr(category["name"] as String),
 
                     textAlign:
                         TextAlign.center,
@@ -1791,7 +1821,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
               children: [
                 Text(
-                  product.name,
+                  tr(product.name),
 
                   maxLines: 1,
 
@@ -1921,7 +1951,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                     Expanded(
                       child:
                           Text(
-                        "Available: "
+                        "${tr('available_label', defaultText: 'Available: ')}"
                         "${product.quantity} "
                         "${product.unit}",
 
@@ -2246,8 +2276,8 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
           Text(
             selectedCategory == "All"
-                ? "No fresh products available"
-                : "No products in this category",
+                ? tr("no_fresh_products", defaultText: "No fresh products available")
+                : tr("no_products_category", defaultText: "No products in this category"),
 
             style:
                 const TextStyle(
@@ -2265,8 +2295,8 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
           Text(
             selectedCategory == "All"
-                ? "Farmers haven't listed any available products yet."
-                : "Try selecting another category.",
+                ? tr("farmers_not_listed", defaultText: "Farmers haven't listed any available products yet.")
+                : tr("try_another_category", defaultText: "Try selecting another category."),
 
             textAlign:
                 TextAlign.center,
@@ -2294,11 +2324,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
               },
 
               child:
-                  const Text(
-                "View All Products",
+                  Text(
+                tr("view_all_products", defaultText: "View All Products"),
 
                 style:
-                    TextStyle(
+                    const TextStyle(
                   color: orange,
                 ),
               ),
@@ -2338,11 +2368,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
               height: 15,
             ),
 
-            const Text(
-              "Unable to load products",
+            Text(
+              tr("unable_to_load", defaultText: "Unable to load products"),
 
               style:
-                  TextStyle(
+                  const TextStyle(
                 color:
                     Colors.white,
                 fontSize: 18,
@@ -2388,8 +2418,8 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
               ),
 
               child:
-                  const Text(
-                "Retry",
+                  Text(
+                tr("retry", defaultText: "Retry"),
               ),
             ),
           ],
@@ -2452,12 +2482,18 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   BoxShape.circle,
             ),
 
-            child:
-                const Icon(
-              Icons.eco_rounded,
-              color:
-                  Colors.white,
-              size: 31,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/kisan_logo.png',
+                width: 57,
+                height: 57,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const Icon(
+                  Icons.eco_rounded,
+                  color: Colors.white,
+                  size: 31,
+                ),
+              ),
             ),
           ),
 
@@ -2465,7 +2501,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
             width: 12,
           ),
 
-          const Expanded(
+          Expanded(
             child: Column(
               mainAxisAlignment:
                   MainAxisAlignment
@@ -2477,10 +2513,10 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
               children: [
                 Text(
-                  "Free Delivery above ₹499",
+                  tr("free_delivery_banner", defaultText: "Free Delivery above ₹499"),
 
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         Colors.white,
                     fontSize: 14,
@@ -2489,15 +2525,15 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                   ),
                 ),
 
-                SizedBox(
+                const SizedBox(
                   height: 4,
                 ),
 
                 Text(
-                  "Support farmers. Eat fresh.",
+                  tr("free_delivery_desc", defaultText: "Support farmers. Eat fresh."),
 
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         Colors.white70,
                     fontSize: 12,

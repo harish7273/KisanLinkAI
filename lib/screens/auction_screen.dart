@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'create_auction_screen.dart';
+import '../services/data_seed_service.dart';
+import '../services/language_service.dart';
 
 class AuctionScreen extends StatefulWidget {
   const AuctionScreen({super.key});
@@ -96,6 +98,8 @@ class _AuctionScreenState extends State<AuctionScreen> {
   void initState() {
     super.initState();
 
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+
     _searchController.addListener(
       _onSearchChanged,
     );
@@ -108,6 +112,23 @@ class _AuctionScreenState extends State<AuctionScreen> {
         }
       },
     );
+
+    _checkAuctionSeed();
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _checkAuctionSeed() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await DataSeedService.ensureFarmerDataSeeded(
+        farmerUid: user.uid,
+        farmerName: user.displayName ?? 'Farmer',
+        phone: user.phoneNumber,
+      );
+    }
   }
 
   // ============================================================
@@ -135,6 +156,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
 
   @override
   void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
     _searchController.dispose();
     _countdownTimer?.cancel();
     super.dispose();
@@ -239,7 +261,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                       CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Auction',
+                      LanguageService.tr('Auction'),
                       style: GoogleFonts.inter(
                         color: Colors.white,
                         fontSize: 20,
@@ -249,7 +271,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Manage your product auctions',
+                      LanguageService.tr('manage_product_auctions'),
                       style: GoogleFonts.inter(
                         color: Colors.white
                             .withAlpha(200),
@@ -371,7 +393,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        _tabs[index],
+                        LanguageService.tr(_tabs[index]),
                         style:
                             GoogleFonts.inter(
                           color: selected
@@ -431,7 +453,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                 decoration:
                     InputDecoration(
                   hintText:
-                      'Search auctions...',
+                      LanguageService.tr('search_auctions_hint'),
                   hintStyle:
                       GoogleFonts.inter(
                     color: mutedText,
@@ -506,12 +528,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
   Widget _buildAuctionStream() {
     return StreamBuilder<
         QuerySnapshot<Map<String, dynamic>>>(
-      stream: _auctionCollection
-          .orderBy(
-            'createdAt',
-            descending: true,
-          )
-          .snapshots(),
+      stream: _auctionCollection.snapshots(),
       builder: (
         context,
         snapshot,
@@ -553,6 +570,20 @@ class _AuctionScreenState extends State<AuctionScreen> {
             auctions.add(auction);
           }
         }
+
+        auctions.sort((a, b) {
+          final tA = a['createdAt'];
+          final tB = b['createdAt'];
+          final dateA = tA is Timestamp
+              ? tA.toDate()
+              : (tA is String ? DateTime.tryParse(tA) : null) ??
+                  DateTime(2000);
+          final dateB = tB is Timestamp
+              ? tB.toDate()
+              : (tB is String ? DateTime.tryParse(tB) : null) ??
+                  DateTime(2000);
+          return dateB.compareTo(dateA);
+        });
 
         if (auctions.isEmpty) {
           return _buildEmptyState();
@@ -842,7 +873,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     CrossAxisAlignment.start,
                 children: [
                   Text(
-                    productName,
+                    LanguageService.tr(productName),
                     maxLines: 1,
                     overflow:
                         TextOverflow.ellipsis,
@@ -873,7 +904,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                   const SizedBox(height: 6),
 
                   Text(
-                    'Start Price',
+                    LanguageService.tr('Start Price'),
                     style:
                         GoogleFonts.inter(
                       color: mutedText,
@@ -895,7 +926,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                   const SizedBox(height: 2),
 
                   Text(
-                    'Highest Bid',
+                    LanguageService.tr('Current Highest Bid'),
                     style:
                         GoogleFonts.inter(
                       color: mutedText,
@@ -966,7 +997,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                         width: 2,
                       ),
                       Text(
-                        '$bidCount Bids',
+                        '$bidCount ${LanguageService.tr('bids')}',
                         style:
                             GoogleFonts.inter(
                           color:
@@ -1089,7 +1120,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     CrossAxisAlignment.start,
                 children: [
                   Text(
-                    productName,
+                    LanguageService.tr(productName),
                     maxLines: 1,
                     overflow:
                         TextOverflow.ellipsis,
@@ -1118,7 +1149,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                       Expanded(
                         child: Text(
                           startTime == null
-                              ? 'Scheduled'
+                              ? LanguageService.tr('Upcoming')
                               : _formatDateTime(
                                   startTime,
                                 ),
@@ -1150,7 +1181,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                   const SizedBox(height: 3),
 
                   Text(
-                    'Start Price  '
+                    '${LanguageService.tr('Start Price')}  '
                     '$startPrice / $unit',
                     style:
                         GoogleFonts.inter(
@@ -1178,7 +1209,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     BorderRadius.circular(5),
               ),
               child: Text(
-                'Scheduled',
+                LanguageService.tr('Upcoming'),
                 style:
                     GoogleFonts.inter(
                   color:
@@ -1280,7 +1311,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     CrossAxisAlignment.start,
                 children: [
                   Text(
-                    productName,
+                    LanguageService.tr(productName),
                     style:
                         GoogleFonts.inter(
                       color: primaryText,
@@ -1305,7 +1336,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                   const SizedBox(height: 4),
 
                   Text(
-                    'Final Bid  '
+                    '${LanguageService.tr('Final Price')}  '
                     '$highestBid / $unit',
                     style:
                         GoogleFonts.inter(
@@ -1333,7 +1364,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     BorderRadius.circular(5),
               ),
               child: Text(
-                'Completed',
+                LanguageService.tr('Completed'),
                 style:
                     GoogleFonts.inter(
                   color: secondaryText,
@@ -1366,6 +1397,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
         imageAsset,
         width: 68,
         height: 78,
+        cacheWidth: 200,
         fit: BoxFit.cover,
         errorBuilder:
             (
@@ -1384,6 +1416,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
         imageUrl,
         width: 68,
         height: 78,
+        cacheWidth: 200,
         fit: BoxFit.cover,
         errorBuilder:
             (
@@ -1448,7 +1481,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     width: 2,
                   ),
                   Text(
-                    'Live',
+                    LanguageService.tr('LIVE'),
                     style:
                         GoogleFonts.inter(
                       color: Colors.white,
@@ -1477,13 +1510,25 @@ class _AuctionScreenState extends State<AuctionScreen> {
       height: 78,
       color:
           const Color(0xFF203126),
-      child: Icon(
-        loading
-            ? Icons.hourglass_empty
-            : Icons.eco_outlined,
-        color: primaryGreen,
-        size: 27,
-      ),
+      child: loading
+          ? const Icon(
+              Icons.hourglass_empty,
+              color: primaryGreen,
+              size: 27,
+            )
+          : Center(
+              child: Image.asset(
+                'assets/images/kisan_logo.png',
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Icon(
+                  Icons.spa_rounded,
+                  color: primaryGreen,
+                  size: 27,
+                ),
+              ),
+            ),
     );
   }
 
@@ -1531,7 +1576,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
               ),
               const SizedBox(width: 5),
               Text(
-                'Create New Auction',
+                LanguageService.tr('Create New Auction'),
                 style:
                     GoogleFonts.inter(
                   fontSize: 9.5,
@@ -1551,33 +1596,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
   // ============================================================
 
   Widget _buildEmptyState() {
-    String message;
-
-    switch (_selectedTab) {
-      case 0:
-        message =
-            'You have no auctions yet';
-        break;
-
-      case 1:
-        message =
-            'No active auctions';
-        break;
-
-      case 2:
-        message =
-            'No upcoming auctions';
-        break;
-
-      case 3:
-        message =
-            'No completed auctions';
-        break;
-
-      default:
-        message =
-            'No auctions found';
-    }
+    final String message = LanguageService.tr('no_auctions_found');
 
     return Center(
       child: Padding(
@@ -1707,7 +1726,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                 CrossAxisAlignment.start,
             children: [
               Text(
-                'Filter Auctions',
+                LanguageService.tr('filter_auctions'),
                 style:
                     GoogleFonts.inter(
                   color: primaryText,
@@ -1720,22 +1739,22 @@ class _AuctionScreenState extends State<AuctionScreen> {
               const SizedBox(height: 18),
 
               _buildFilterOption(
-                'My Auctions',
+                LanguageService.tr('My Auctions'),
                 0,
               ),
 
               _buildFilterOption(
-                'Active',
+                LanguageService.tr('Active'),
                 1,
               ),
 
               _buildFilterOption(
-                'Upcoming',
+                LanguageService.tr('Upcoming'),
                 2,
               ),
 
               _buildFilterOption(
-                'Completed',
+                LanguageService.tr('Completed'),
                 3,
               ),
 
@@ -1883,7 +1902,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
 
                   Expanded(
                     child: Text(
-                      productName,
+                      LanguageService.tr(productName),
                       style:
                           GoogleFonts.inter(
                         color: primaryText,
@@ -1924,7 +1943,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
               const SizedBox(height: 15),
 
               Text(
-                'Current Highest Bid',
+                LanguageService.tr('Current Highest Bid'),
                 style:
                     GoogleFonts.inter(
                   color: mutedText,
@@ -1958,7 +1977,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                   const SizedBox(width: 5),
 
                   Text(
-                    '$bidCount bids',
+                    '$bidCount ${LanguageService.tr('bids')}',
                     style:
                         GoogleFonts.inter(
                       color:
@@ -1996,7 +2015,7 @@ class _AuctionScreenState extends State<AuctionScreen> {
                     ),
                   ),
                   child: Text(
-                    'View Auction',
+                    LanguageService.tr('view'),
                     style:
                         GoogleFonts.inter(
                       fontWeight:
@@ -2181,19 +2200,19 @@ class _AuctionScreenState extends State<AuctionScreen> {
   String _getSectionTitle() {
     switch (_selectedTab) {
       case 0:
-        return 'My Auctions';
+        return LanguageService.tr('My Auctions');
 
       case 1:
-        return 'Active Auctions';
+        return LanguageService.tr('Active');
 
       case 2:
-        return 'Upcoming Auctions';
+        return LanguageService.tr('Upcoming');
 
       case 3:
-        return 'Completed Auctions';
+        return LanguageService.tr('Completed');
 
       default:
-        return 'Auctions';
+        return LanguageService.tr('Auction');
     }
   }
 }

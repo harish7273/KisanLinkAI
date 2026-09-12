@@ -2063,7 +2063,7 @@ class _CreateAuctionScreenState
                 ),
 
                 Text(
-                  'Your product image is automatically added from the Vidhai catalog. Set a competitive starting price and provide accurate details.',
+                  'Your product image is automatically added from the KisanAI catalog. Set a competitive starting price and provide accurate details.',
 
                   style:
                       GoogleFonts.inter(

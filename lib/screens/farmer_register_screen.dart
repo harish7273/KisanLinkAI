@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../navigation/bottom_nav_screen.dart';
 
 class FarmerRegisterScreen extends StatefulWidget {
   const FarmerRegisterScreen({super.key});
@@ -160,11 +161,11 @@ class _FarmerRegisterScreenState
 
     try {
       // ========================================================
-      // VIDHAI INTERNAL EMAIL
+      // KISANAI INTERNAL EMAIL
       // ========================================================
 
       final String loginEmail =
-          "$mobile@vidhai.app";
+          "$mobile@kisanai.app";
 
       // ========================================================
       // CREATE FIREBASE AUTH ACCOUNT
@@ -244,8 +245,6 @@ class _FarmerRegisterScreenState
       //
       // ========================================================
 
-      await FirebaseAuth.instance.signOut();
-
       if (!mounted) return;
 
       setState(() {
@@ -257,21 +256,27 @@ class _FarmerRegisterScreenState
       // ========================================================
 
       _showMessage(
-        "Account created successfully! 🌱",
+        "Account created successfully! Welcome to KisanAI 🌱",
         isError: false,
       );
 
       await Future.delayed(
-        const Duration(milliseconds: 900),
+        const Duration(milliseconds: 600),
       );
 
       if (!mounted) return;
 
       // ========================================================
-      // RETURN TO LOGIN
+      // NAVIGATE TO FARMER HOME
       // ========================================================
 
-      Navigator.pop(context);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const BottomNavScreen(),
+        ),
+        (route) => false,
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
@@ -480,7 +485,7 @@ class _FarmerRegisterScreenState
               const SizedBox(width: 5),
 
               Text(
-                "VIDHAI",
+                "KisanAI",
                 style: GoogleFonts.outfit(
                   fontSize: 18,
                   fontWeight:

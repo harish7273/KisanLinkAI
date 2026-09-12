@@ -115,7 +115,71 @@ class DeliveryProfileScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _infoRow(Icons.two_wheeler_rounded, 'Vehicle Type', partner.vehicleType),
+                    // Dynamic Vehicle Image Banner
+                    Container(
+                      height: 130,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                        image: (partner.vehicleType.toLowerCase().contains('truck') ||
+                                partner.vehicleType.toLowerCase().contains('reefer') ||
+                                partner.vehicleType.toLowerCase().contains('ace') ||
+                                partner.vehicleType.toLowerCase().contains('bolero') ||
+                                !partner.vehicleType.toLowerCase().contains('bike'))
+                            ? const DecorationImage(
+                                image: AssetImage('assets/images/delivery_partner_truck.jpg'),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        color: const Color(0xFF1B241C),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: const LinearGradient(
+                            colors: [Colors.black87, Colors.transparent],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(10),
+                        alignment: Alignment.bottomLeft,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              partner.vehicleType,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: yellow.withValues(alpha: 0.5)),
+                              ),
+                              child: Text(
+                                partner.vehicleType.toLowerCase().contains('reefer')
+                                    ? '❄️ Active Cold-Chain 4°C'
+                                    : 'Heavy Agri Transit',
+                                style: const TextStyle(color: yellow, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _infoRow(
+                      (partner.vehicleType.toLowerCase().contains('truck') || partner.vehicleType.toLowerCase().contains('reefer'))
+                          ? Icons.local_shipping_rounded
+                          : (partner.vehicleType.toLowerCase().contains('electric') || partner.vehicleType.toLowerCase().contains('ev'))
+                              ? Icons.electric_bolt_rounded
+                              : Icons.two_wheeler_rounded,
+                      'Vehicle Type',
+                      partner.vehicleType,
+                    ),
                     const Divider(color: Colors.white10, height: 20),
                     _infoRow(Icons.confirmation_number_rounded, 'Vehicle Number', partner.vehicleNumber),
                     const Divider(color: Colors.white10, height: 20),

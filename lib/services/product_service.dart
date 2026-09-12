@@ -130,14 +130,10 @@ class ProductService {
 
   Stream<List<ProductModel>> getProducts() {
     return products
-        .orderBy(
-          "createdAt",
-          descending: true,
-        )
         .snapshots()
         .map(
           (snapshot) {
-            return snapshot.docs.map(
+            final list = snapshot.docs.map(
               (doc) {
                 final data =
                     doc.data()
@@ -150,6 +146,8 @@ class ProductService {
                 );
               },
             ).toList();
+            list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return list;
           },
         );
   }
@@ -166,14 +164,10 @@ class ProductService {
           "farmerId",
           isEqualTo: farmerId,
         )
-        .orderBy(
-          "createdAt",
-          descending: true,
-        )
         .snapshots()
         .map(
           (snapshot) {
-            return snapshot.docs.map(
+            final list = snapshot.docs.map(
               (doc) {
                 final data =
                     doc.data()
@@ -186,6 +180,8 @@ class ProductService {
                 );
               },
             ).toList();
+            list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return list;
           },
         );
   }

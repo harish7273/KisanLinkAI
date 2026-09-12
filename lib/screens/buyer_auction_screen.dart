@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'buyer_auction_details_screen.dart';
+import '../services/language_service.dart';
 
 class BuyerAuctionScreen extends StatefulWidget {
   const BuyerAuctionScreen({
@@ -18,7 +19,7 @@ class BuyerAuctionScreen extends StatefulWidget {
 class _BuyerAuctionScreenState
     extends State<BuyerAuctionScreen> {
   // ============================================================
-  // VIDHAI COLORS
+  // KISANAI COLORS
   // ============================================================
 
   static const Color orange =
@@ -152,6 +153,8 @@ class _BuyerAuctionScreenState
   void initState() {
     super.initState();
 
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+
     _searchController.addListener(
       _onSearchChanged,
     );
@@ -165,6 +168,10 @@ class _BuyerAuctionScreenState
         }
       },
     );
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
   }
 
   // ============================================================
@@ -188,6 +195,7 @@ class _BuyerAuctionScreenState
 
   @override
   void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
     _searchController.dispose();
     _refreshTimer?.cancel();
     super.dispose();
@@ -280,7 +288,7 @@ class _BuyerAuctionScreenState
           ),
 
           // TITLE
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment:
                   CrossAxisAlignment
@@ -288,10 +296,10 @@ class _BuyerAuctionScreenState
 
               children: [
                 Text(
-                  'Auctions',
+                  LanguageService.tr('auctions'),
 
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         Colors.white,
                     fontSize: 21,
@@ -300,15 +308,15 @@ class _BuyerAuctionScreenState
                   ),
                 ),
 
-                SizedBox(
+                const SizedBox(
                   height: 2,
                 ),
 
                 Text(
-                  'Bid and get the best farm products',
+                  LanguageService.tr('bid_fresh_products'),
 
                   style:
-                      TextStyle(
+                      const TextStyle(
                     color:
                         textSecondary,
                     fontSize: 9,
@@ -396,9 +404,9 @@ class _BuyerAuctionScreenState
                 ),
 
                 decoration:
-                    const InputDecoration(
+                    InputDecoration(
                   prefixIcon:
-                      Icon(
+                      const Icon(
                     Icons
                         .search_rounded,
                     color:
@@ -407,7 +415,7 @@ class _BuyerAuctionScreenState
                   ),
 
                   hintText:
-                      'Search auctions...',
+                      LanguageService.tr('search_auctions_hint'),
 
                   hintStyle:
                       TextStyle(
@@ -549,7 +557,7 @@ class _BuyerAuctionScreenState
               child:
                   Center(
                 child: Text(
-                  _tabs[index],
+                  LanguageService.tr(_tabs[index]),
 
                   style:
                       TextStyle(
@@ -1676,6 +1684,7 @@ class _BuyerAuctionScreenState
 
         width: width,
         height: height,
+        cacheWidth: 200,
 
         fit: BoxFit.cover,
 

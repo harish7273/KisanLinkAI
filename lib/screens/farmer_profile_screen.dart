@@ -92,46 +92,45 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
     email = user.email ?? '';
 
     try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final Map<String, dynamic> data = {};
+
+      // 1. Try farmers collection first
+      try {
+        final farmerDoc = await _firestore.collection('farmers').doc(user.uid).get();
+        if (farmerDoc.exists && farmerDoc.data() != null) {
+          data.addAll(farmerDoc.data()!);
+        }
+      } catch (_) {}
+
+      // 2. Try users collection second
+      try {
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        if (userDoc.exists && userDoc.data() != null) {
+          userDoc.data()!.forEach((k, v) {
+            if (v != null && (data[k] == null || data[k].toString().trim().isEmpty)) {
+              data[k] = v;
+            }
+          });
+        }
+      } catch (_) {}
 
       if (!mounted) return;
 
-      if (doc.exists) {
-        final data = doc.data();
-
-        if (data != null) {
-          final name =
-              data['name']?.toString().trim() ?? '';
-
-          final farm =
-              data['farmName']?.toString().trim() ?? '';
-
-          final avatar =
-              data['profileAvatar']?.toString().trim() ?? '';
-
-          setState(() {
-            farmerName =
-                name.isNotEmpty ? name : 'Farmer';
-
-            farmName =
-                farm.isNotEmpty ? farm : 'My Farm';
-
-            selectedAvatar =
-                _isValidAvatar(avatar)
-                    ? avatar
-                    : 'farmer_1';
-
-            loading = false;
-          });
-
-          return;
-        }
+      String name = data['name']?.toString().trim() ?? '';
+      if (name.isEmpty) {
+        name = user.displayName?.trim() ?? '';
+      }
+      if (name.isEmpty) {
+        name = 'Farmer';
       }
 
+      final farm = data['farmName']?.toString().trim() ?? '';
+      final avatar = data['profileAvatar']?.toString().trim() ?? '';
+
       setState(() {
+        farmerName = name;
+        farmName = farm.isNotEmpty ? farm : 'My Farm';
+        selectedAvatar = _isValidAvatar(avatar) ? avatar : 'farmer_1';
         loading = false;
       });
     } catch (e) {
@@ -141,6 +140,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
 
       if (mounted) {
         setState(() {
+          farmerName = user.displayName?.trim().isNotEmpty == true ? user.displayName!.trim() : 'Farmer';
           loading = false;
         });
       }
@@ -658,19 +658,22 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
     }
 
     try {
-      await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .set(
-        {
-          'profileAvatar': avatar,
-          'updatedAt':
-              FieldValue.serverTimestamp(),
-        },
-        SetOptions(
-          merge: true,
+      await Future.wait([
+        _firestore.collection('users').doc(user.uid).set(
+          {
+            'profileAvatar': avatar,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
         ),
-      );
+        _firestore.collection('farmers').doc(user.uid).set(
+          {
+            'profileAvatar': avatar,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        ),
+      ]);
 
       if (!mounted) return;
 
@@ -1298,7 +1301,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                             Icons
                                 .info_outline_rounded,
                         title:
-                            'About Vidhai',
+                            'About KisanAI',
                         subtitle:
                             'Direct agricultural marketplace',
                         onTap:
@@ -1401,7 +1404,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                       const Center(
                         child:
                             Text(
-                          'Vidhai • Farmer',
+                          'KisanAI • Farmer',
                           style:
                               TextStyle(
                             color:
@@ -1607,7 +1610,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     8,
               ),
               Text(
-                'Vidhai',
+                'KisanAI',
                 style:
                     TextStyle(
                   color:

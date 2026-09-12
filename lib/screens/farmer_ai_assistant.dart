@@ -89,9 +89,9 @@ class _FarmerAiAssistantState
       'isUser': false,
       'message':
           'Vanakkam ${widget.farmerName}! 👋\n\n'
-          'I’m Vidhai Assistant. I can help you with '
+          'I’m KisanAI Assistant. I can help you with '
           'farming, crops, market guidance, weather '
-          'and your Vidhai activities.',
+          'and your KisanAI activities.',
     });
   }
 
@@ -186,7 +186,7 @@ class _FarmerAiAssistantState
         messages.add({
           'isUser': false,
           'message':
-              '⚠️ I could not connect to Vidhai AI right now.\n\n'
+              '⚠️ I could not connect to KisanAI right now.\n\n'
               'Please check your internet connection '
               'and try again.',
         });
@@ -486,7 +486,7 @@ class _FarmerAiAssistantState
 
               children: [
                 Text(
-                  'Vidhai Assistant',
+                  'KisanAI Assistant',
 
                   style: TextStyle(
                     color:
@@ -760,7 +760,7 @@ class _FarmerAiAssistantState
 
           children: [
             Text(
-              'Vidhai is thinking',
+              'KisanAI is thinking',
 
               style: TextStyle(
                 color:
@@ -1059,7 +1059,7 @@ class _FarmerAiAssistantState
                 decoration:
                     const InputDecoration(
                   hintText:
-                      'Ask Vidhai anything...',
+                      'Ask KisanAI anything...',
 
                   hintStyle:
                       TextStyle(

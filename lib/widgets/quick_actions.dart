@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../screens/ai_chat_screen.dart';
+import '../screens/kisan_voice_screen.dart';
+import '../screens/quality_scanner_screen.dart';
+import '../screens/kisan_pool_screen.dart';
+import '../screens/offline_sync_screen.dart';
 
 class QuickActions extends StatelessWidget {
   final String role;
@@ -51,7 +55,7 @@ class QuickActions extends StatelessWidget {
                   color: const Color(0xFF181818),
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(
-                    color: const Color(0xFF017422).withOpacity(.25),
+                    color: const Color(0xFF00E676).withOpacity(.25),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -68,12 +72,12 @@ class QuickActions extends StatelessWidget {
                       width: 58,
                       height: 58,
                       decoration: const BoxDecoration(
-                        color: Color(0x22017422),
+                        color: Color(0x2200E676),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         item.icon,
-                        color: const Color(0xFF017422),
+                        color: const Color(0xFF00E676),
                         size: 30,
                       ),
                     ),
@@ -116,50 +120,53 @@ class QuickActions extends StatelessWidget {
 
   static List<_ActionItem> _farmerActions(BuildContext context) => [
         _ActionItem(
-          icon: Icons.smart_toy_rounded,
-          title: "AI Assistant",
-          subtitle: "Ask anything",
+          icon: Icons.record_voice_over_rounded,
+          title: "Voice Assistant",
+          subtitle: "Zero-typing list",
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const AIChatScreen(),
+                builder: (_) => const KisanVoiceScreen(),
               ),
             );
           },
         ),
         _ActionItem(
-          icon: Icons.eco_rounded,
-          title: "Crop Care",
-          subtitle: "Smart advice",
+          icon: Icons.camera_enhance_rounded,
+          title: "Quality Scanner",
+          subtitle: "AGMARK AI grading",
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Coming Soon 🚀"),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const QualityScannerScreen(),
               ),
             );
           },
         ),
         _ActionItem(
-          icon: Icons.show_chart_rounded,
-          title: "Market",
-          subtitle: "Live prices",
+          icon: Icons.local_shipping_rounded,
+          title: "KisanPool",
+          subtitle: "Shared milk-run",
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Coming Soon 🚀"),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const KisanPoolScreen(),
               ),
             );
           },
         ),
         _ActionItem(
-          icon: Icons.agriculture_rounded,
-          title: "Equipment",
-          subtitle: "Rent machines",
+          icon: Icons.cloud_sync_rounded,
+          title: "Offline Sync",
+          subtitle: "Local queue & cache",
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Coming Soon 🚀"),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const OfflineSyncScreen(),
               ),
             );
           },

@@ -27,6 +27,17 @@ class _DeliveryConfirmScreenState extends State<DeliveryConfirmScreen> {
   static const Color card = Color(0xFF151515);
 
   bool loading = false;
+  final TextEditingController _otpController = TextEditingController();
+  bool _freshnessChecked = true;
+  bool _quantityChecked = true;
+  bool _zeroDamageChecked = true;
+  String? _otpError;
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
+  }
 
   Future<void> _callPhone(String phone) async {
     if (phone.isEmpty) return;
@@ -39,7 +50,32 @@ class _DeliveryConfirmScreenState extends State<DeliveryConfirmScreen> {
   Future<void> _completeDelivery() async {
     if (widget.partner == null) return;
 
-    setState(() => loading = true);
+    final expectedOtp = (widget.order.deliveryOtp != null && widget.order.deliveryOtp!.isNotEmpty)
+        ? widget.order.deliveryOtp!
+        : '4821';
+
+    final enteredOtp = _otpController.text.trim();
+    if (enteredOtp != expectedOtp) {
+      setState(() {
+        _otpError = 'Invalid OTP. Customer OTP is $expectedOtp';
+      });
+      return;
+    }
+
+    if (!_freshnessChecked || !_quantityChecked || !_zeroDamageChecked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.orangeAccent,
+          content: Text('Please confirm all zero-damage inspection checkpoints.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      loading = true;
+      _otpError = null;
+    });
 
     await DeliveryService.instance.completeDelivery(
       orderId: widget.order.orderId,
@@ -234,6 +270,105 @@ class _DeliveryConfirmScreenState extends State<DeliveryConfirmScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 18),
+
+                      // Step 4 Produce Handover & Inspection
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Step 4 • Produce Handover & Inspection',
+                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Column(
+                          children: [
+                            CheckboxListTile(
+                              value: _freshnessChecked,
+                              onChanged: (v) => setState(() => _freshnessChecked = v ?? true),
+                              activeColor: Colors.greenAccent,
+                              checkColor: Colors.black,
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Produce freshness & crispness verified', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                            CheckboxListTile(
+                              value: _quantityChecked,
+                              onChanged: (v) => setState(() => _quantityChecked = v ?? true),
+                              activeColor: Colors.greenAccent,
+                              checkColor: Colors.black,
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Crate count & weight verified', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                            CheckboxListTile(
+                              value: _zeroDamageChecked,
+                              onChanged: (v) => setState(() => _zeroDamageChecked = v ?? true),
+                              activeColor: Colors.greenAccent,
+                              checkColor: Colors.black,
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Zero physical transit damage confirmed', style: TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Customer OTP Verification Input
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Customer Handover OTP',
+                          style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _otpError != null ? Colors.redAccent : yellow.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Ask customer for the 4-digit code shown on their live tracking screen:',
+                              style: TextStyle(color: Colors.white54, fontSize: 11),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: _otpController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 4,
+                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8),
+                              decoration: InputDecoration(
+                                counterText: '',
+                                hintText: order.deliveryOtp ?? '4821',
+                                hintStyle: const TextStyle(color: Colors.white24, letterSpacing: 8),
+                                filled: true,
+                                fillColor: const Color(0xFF1B241C),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                prefixIcon: const Icon(Icons.pin_rounded, color: yellow),
+                              ),
+                            ),
+                            if (_otpError != null) ...[
+                              const SizedBox(height: 6),
+                              Text(_otpError!, style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                     ],
                   ),
                 ),

@@ -442,7 +442,7 @@ class CustomHeader extends StatelessWidget {
 
           content:
               const Text(
-            'Are you sure you want to logout from Vidhai?',
+            'Are you sure you want to logout from KisanAI?',
 
             style:
                 TextStyle(

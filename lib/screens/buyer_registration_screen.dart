@@ -53,9 +53,20 @@ class _BuyerRegistrationScreenState
 
     final name = _nameController.text.trim();
     final shopName = _shopNameController.text.trim();
-    final username =
-        _usernameController.text.trim().toLowerCase();
+    final rawInput = _usernameController.text.trim();
     final password = _passwordController.text;
+
+    final bool isEmail = rawInput.contains('@');
+    final String cleanUsername = isEmail
+        ? rawInput.split('@').first.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '')
+        : rawInput.toLowerCase().replaceAll(' ', '_').replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '');
+
+    if (cleanUsername.isEmpty) {
+      _showError('Invalid username.');
+      return;
+    }
+
+    final String email = isEmail ? rawInput.toLowerCase() : '$cleanUsername@kisanai.app';
 
     setState(() {
       _loading = true;
@@ -66,13 +77,24 @@ class _BuyerRegistrationScreenState
       // INTERNAL EMAIL & FIREBASE AUTH
       // ========================================================
 
-      final email = '$username@vidhai.app';
-
-      final credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential credential;
+      try {
+        credential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } on FirebaseAuthException catch (authError) {
+        if (authError.code == 'invalid-email' && !isEmail) {
+          credential = await FirebaseAuth.instance
+              .createUserWithEmailAndPassword(
+            email: '$cleanUsername@vidhai.app',
+            password: password,
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       final user = credential.user;
 
@@ -93,7 +115,7 @@ class _BuyerRegistrationScreenState
         'uid': user.uid,
         'name': name,
         'shopName': shopName,
-        'username': username,
+        'username': cleanUsername,
         'email': email,
         'role': 'buyer',
         'phone': '',
@@ -400,21 +422,21 @@ class _BuyerRegistrationScreenState
                         value?.trim() ?? '';
 
                     if (username.isEmpty) {
-                      return 'Create a username';
+                      return 'Enter a username or email';
                     }
 
-                    if (username.length < 4) {
-                      return 'Minimum 4 characters';
+                    if (username.length < 3) {
+                      return 'Minimum 3 characters';
                     }
 
                     if (username.contains(' ')) {
-                      return 'Username cannot contain spaces';
+                      return 'Cannot contain spaces (use _ instead)';
                     }
 
                     return null;
                   },
                   decoration: _inputDecoration(
-                    hint: 'Create a username',
+                    hint: 'e.g. buyer_kovai or name@email.com',
                     icon:
                         Icons.alternate_email_rounded,
                   ),
@@ -655,7 +677,7 @@ class _BuyerRegistrationScreenState
 
                 const Center(
                   child: Text(
-                    'Vidhai • Fresh from Farms',
+                    'KisanAI • Fresh from Farms',
                     style: TextStyle(
                       color: Colors.white24,
                       fontSize: 10,

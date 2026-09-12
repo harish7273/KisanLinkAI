@@ -80,13 +80,12 @@ class _SplashScreenState extends State<SplashScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
 
-                    /// Temporary Logo
+                    /// Kisan AI Logo
                     Container(
-                      width: 140,
-                      height: 140,
+                      width: 150,
+                      height: 150,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: AppColors.primaryGradient,
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withOpacity(0.4),
@@ -95,33 +94,45 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.eco_rounded,
-                        color: Colors.white,
-                        size: 70,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/kisan_logo.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: AppColors.primaryGradient,
+                            ),
+                            child: const Icon(
+                              Icons.eco_rounded,
+                              color: Colors.white,
+                              size: 70,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
 
-                    const SizedBox(height: 35),
+                    const SizedBox(height: 30),
 
                     const Text(
-                      "VIDHAI",
+                      "KISAN AI",
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 40,
+                        fontSize: 38,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
+                        letterSpacing: 3,
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     const Text(
-                      "From Seed to Success",
+                      "Grow Direct • Grow Together 🌾",
                       style: TextStyle(
                         color: Colors.white70,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
 

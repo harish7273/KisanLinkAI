@@ -266,7 +266,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen>
                     _buildTextField(
                       controller: nameCtrl,
                       label: 'Full Name',
-                      hint: 'e.g. Madhan',
+                      hint: 'e.g. Ramesh Kumar',
                       icon: Icons.person_rounded,
                     ),
                     const SizedBox(height: 14),
@@ -275,7 +275,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen>
                     _buildTextField(
                       controller: storeCtrl,
                       label: 'Store / Business Name',
-                      hint: 'e.g. Madhan Supermart',
+                      hint: 'e.g. Fresh Supermart',
                       icon: Icons.storefront_rounded,
                     ),
                     const SizedBox(height: 14),
@@ -746,7 +746,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen>
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          'Are you sure you want to log out from Vidhai?',
+          'Are you sure you want to log out from KisanAI?',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -923,11 +923,11 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen>
                     _option(
                       icon: Icons.headset_mic_outlined,
                       title: 'Customer Support',
-                      subtitle: 'Vidhai Direct Marketplace Helpline',
+                      subtitle: 'KisanAI Direct Marketplace Helpline',
                       onTap: () {
                         _showDetails('Help & Support', [
-                          ['Helpline', '+91 1800-425-VIDHAI'],
-                          ['Support Email', 'support@vidhai.app'],
+                          ['Helpline', '+91 1800-425-KISAN'],
+                          ['Support Email', 'support@kisanai.app'],
                           ['Operational Hours', '6:00 AM - 9:00 PM (Daily)'],
                           ['Platform', 'Farm-to-Door Delivery Ecosystem'],
                         ]);
@@ -936,12 +936,12 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen>
 
                     _option(
                       icon: Icons.info_outline_rounded,
-                      title: 'About Vidhai',
+                      title: 'About KisanAI',
                       subtitle: 'Version 1.0.0 • Direct farmer-to-buyer platform',
                       onTap: () {
                         showAboutDialog(
                           context: context,
-                          applicationName: 'Vidhai',
+                          applicationName: 'KisanAI',
                           applicationVersion: '1.0.0',
                           applicationIcon: const Icon(
                             Icons.eco_rounded,
@@ -950,7 +950,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen>
                           ),
                           children: const [
                             Text(
-                              'Vidhai is an ultra-reliable direct farmer-to-buyer agricultural commerce ecosystem empowering fair pricing and real-time live delivery.',
+                              'KisanAI is an ultra-reliable direct farmer-to-buyer agricultural commerce ecosystem empowering fair pricing and real-time live delivery.',
                             ),
                           ],
                         );
@@ -993,7 +993,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen>
                     const SizedBox(height: 16),
                     const Center(
                       child: Text(
-                        'Vidhai • Buyer Ecosystem',
+                        'KisanAI • Buyer Ecosystem',
                         style: TextStyle(color: Colors.white24, fontSize: 10),
                       ),
                     ),

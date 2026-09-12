@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/delivery_partner_model.dart';
 import '../../models/order_model.dart';
 import '../../services/delivery_service.dart';
+import '../../services/language_service.dart';
 import '../../widgets/live_map_widget.dart';
 import 'delivery_arrived_farm_screen.dart';
 
@@ -29,6 +30,22 @@ class _DeliveryNavigateFarmerScreenState extends State<DeliveryNavigateFarmerScr
   static const Color card = Color(0xFF151515);
 
   bool loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    LanguageService.currentLocaleNotifier.addListener(_onLocaleChanged);
+  }
+
+  @override
+  void dispose() {
+    LanguageService.currentLocaleNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onLocaleChanged() {
+    if (mounted) setState(() {});
+  }
 
   Future<void> _launchExternalMap(double lat, double lng) async {
     final Uri url = Uri.parse('google.navigation:q=$lat,$lng&mode=d');
@@ -78,7 +95,7 @@ class _DeliveryNavigateFarmerScreenState extends State<DeliveryNavigateFarmerScr
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Go to Pickup Location',
+          LanguageService.tr('pickup_location', defaultText: 'Go to Pickup Location'),
           style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
@@ -121,7 +138,10 @@ class _DeliveryNavigateFarmerScreenState extends State<DeliveryNavigateFarmerScr
                     ElevatedButton.icon(
                       onPressed: () => _launchExternalMap(farmLat, farmLng),
                       icon: const Icon(Icons.navigation_rounded, color: Colors.black, size: 14),
-                      label: const Text('Navigate', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11)),
+                      label: Text(
+                        LanguageService.tr('track', defaultText: 'Navigate'),
+                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: yellow,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -137,40 +157,13 @@ class _DeliveryNavigateFarmerScreenState extends State<DeliveryNavigateFarmerScr
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                child: Stack(
-                  children: [
-                    LiveMapWidget(
-                      partnerLocation: LatLng(partnerLat, partnerLng),
-                      farmerLocation: LatLng(farmLat, farmLng),
-                      farmerName: "${order.farmerName}'s Farm",
-                      height: double.infinity,
-                      initialZoom: 14.5,
-                      showPolyline: true,
-                    ),
-                    // Distance Tag Overlay
-                    Positioned(
-                      left: 14,
-                      bottom: 14,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E241E),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: yellow.withOpacity(0.4)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.directions_bike_rounded, color: yellow, size: 16),
-                            SizedBox(width: 6),
-                            Text(
-                              '2.1 km away',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                child: LiveMapWidget(
+                  partnerLocation: LatLng(partnerLat, partnerLng),
+                  farmerLocation: LatLng(farmLat, farmLng),
+                  farmerName: "${order.farmerName}'s Farm",
+                  height: double.infinity,
+                  initialZoom: 14.5,
+                  showPolyline: true,
                 ),
               ),
             ),
@@ -239,12 +232,12 @@ class _DeliveryNavigateFarmerScreenState extends State<DeliveryNavigateFarmerScr
                       ? const CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5)
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.black),
-                            SizedBox(width: 8),
+                          children: [
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.black),
+                            const SizedBox(width: 8),
                             Text(
-                              'Start Pickup',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              LanguageService.tr('start_pickup', defaultText: 'Start Pickup'),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
