@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" width="160" height="80">
+  <!-- Reefer Cold-Chain Truck Body -->
+  <rect x="10" y="16" width="94" height="42" rx="4" fill="#FFFFFF" stroke="#D4D4D8" stroke-width="2"/>
+  <rect x="10" y="16" width="94" height="6" fill="#38BDF8"/>
+  <text x="57" y="42" font-family="'Plus Jakarta Sans', sans-serif" font-size="10" font-weight="800" fill="#0284C7" text-anchor="middle">REEFER 4°C</text>
+  <!-- Cabin -->
+  <path d="M104 28 L126 28 L142 44 L142 58 L104 58 Z" fill="#18181B"/>
+  <path d="M110 32 L124 32 L136 44 L110 44 Z" fill="#E2E8F0"/>
+  <!-- Chassis & Wheels -->
+  <rect x="8" y="58" width="136" height="5" fill="#27272A"/>
+  <circle cx="34" cy="64" r="11" fill="#18181B" stroke="#71717A" stroke-width="3"/>
+  <circle cx="34" cy="64" r="4" fill="#D4D4D8"/>
+  <circle cx="84" cy="64" r="11" fill="#18181B" stroke="#71717A" stroke-width="3"/>
+  <circle cx="84" cy="64" r="4" fill="#D4D4D8"/>
+  <circle cx="126" cy="64" r="11" fill="#18181B" stroke="#71717A" stroke-width="3"/>
+  <circle cx="126" cy="64" r="4" fill="#D4D4D8"/>
+</svg>

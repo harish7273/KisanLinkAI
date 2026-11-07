@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <circle cx="40" cy="46" r="26" fill="#EF4444"/>
+  <path d="M40 46 C34 46 22 36 24 24 C34 22 40 32 40 46 Z" fill="#DC2626" opacity="0.4"/>
+  <!-- Leaf Stem -->
+  <path d="M40 22 C40 14 36 10 32 8 M40 22 C44 14 48 10 52 8 M40 22 L40 12" stroke="#15803D" stroke-width="3" stroke-linecap="round"/>
+</svg>

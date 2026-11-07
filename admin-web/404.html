@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KisanAI Enterprise Admin</title>
+  <link rel="icon" type="image/svg+xml" href="assets/icons/kisan_favicon.svg">
+  <script>
+    // ----------------------------------------------------------------------
+    // Single Page Apps for GitHub Pages
+    // MIT License: https://github.com/rafgraph/spa-github-pages
+    // Redirects 404 paths to index.html with appropriate query / hash
+    // ----------------------------------------------------------------------
+    (function(l) {
+      if (l.search[1] === '/' ) {
+        var decoded = l.search.slice(1).split('&').map(function(s) { 
+          return s.replace(/~and~/g, '&');
+        }).join('?');
+        window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      } else {
+        var pathSegmentsToKeep = 1; // 1 segment for GitHub Pages project repo: /KisanLinkAI/
+        var l = window.location;
+        var pathname = l.pathname;
+        var repoPrefix = pathname.split('/')[1] ? '/' + pathname.split('/')[1] : '';
+        var remainingPath = pathname.slice(repoPrefix.length).replace(/^\/+/, '');
+        var newUrl = l.origin + repoPrefix + '/index.html' + (remainingPath ? '#/' + remainingPath : '') + l.search + l.hash;
+        l.replace(newUrl);
+      }
+    }(window.location));
+  </script>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #FAFAFA; color: #111113;">
+  <div style="text-align: center; padding: 32px;">
+    <div style="width: 48px; height: 48px; border-radius: 12px; background: #111113; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+      <img src="assets/icons/kisan_logo.svg" alt="KisanAI" width="32" height="32" style="border-radius: 6px;" />
+    </div>
+    <h3 style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0;">KisanAI Enterprise Routing</h3>
+    <p style="font-size: 13px; color: #5F6368; margin: 0;">Redirecting to your active administrative workspace...</p>
+  </div>
+</body>
+</html>

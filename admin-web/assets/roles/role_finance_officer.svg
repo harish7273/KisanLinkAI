@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="grad_fin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F4F4F5" />
+    </linearGradient>
+    <linearGradient id="teal_fin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D9488" />
+      <stop offset="100%" stop-color="#0F766E" />
+    </linearGradient>
+    <filter id="shadow_fin"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/></filter>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#grad_fin)" stroke="#ECECEE" stroke-width="1.5" filter="url(#shadow_fin)"/>
+  <circle cx="60" cy="48" r="22" fill="#111827"/>
+  <circle cx="60" cy="48" r="12" fill="url(#teal_fin)"/>
+  <!-- Pure SVG Rupee Symbol Line Drawing without special unicode chars -->
+  <path d="M55 42 L65 42 M55 46 L65 46 M55 42 L55 50 C58 50 63 50 63 46 C63 43 58 43 55 43 M58 50 L65 56" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M34 98 C34 78 44 72 60 72 C76 72 86 78 86 98 Z" fill="#111827"/>
+  <polygon points="60,74 54,98 66,98" fill="url(#teal_fin)"/>
+  <circle cx="90" cy="90" r="14" fill="#FFFFFF" stroke="#ECECEE" stroke-width="1.5"/>
+  <circle cx="90" cy="90" r="11" fill="url(#teal_fin)"/>
+  <text x="90" y="94" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="7.5" font-weight="800" fill="#FFFFFF">GST</text>
+</svg>

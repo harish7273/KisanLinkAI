@@ -1,0 +1,147 @@
+/* ==========================================================================
+   KISANAI ENTERPRISE DESIGN SYSTEM — QUIET LUXURY TOKENS
+   Inspired by Apple / Stripe / Linear / Private Banking
+   Default Theme: Pristine High-Key White | Optional: Graphite Dark
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ------------------------------------------------------------------------
+     1. COLOR SYSTEM — QUIET LUXURY WHITE (Primary Default)
+     ------------------------------------------------------------------------ */
+  --bg-canvas: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #FAFAFA;
+  --bg-surface-hover: #F4F4F5;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-glass: rgba(255, 255, 255, 0.92);
+
+  /* Hairlines & Borders */
+  --border-hairline: #ECECEE;
+  --border-default: #ECECEE;
+  --border-strong: #D4D4D8;
+  --border-focus: rgba(17, 17, 19, 0.2);
+
+  /* Typography Colors */
+  --text-primary: #0B0B0F;
+  --text-secondary: #5F6368;
+  --text-muted: #8A8F98;
+  --text-inverse: #FFFFFF;
+
+  /* Primary Action Tokens (Near-Black / Graphite) */
+  --btn-primary-bg: #111113;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #2A2A2E;
+  --btn-primary-focus-ring: rgba(17, 17, 19, 0.2);
+
+  /* Subtle Muted Semantic Status Indicators */
+  --status-success: #3C8D63;
+  --status-success-bg: #F2F8F4;
+  --status-success-border: #D5E8DD;
+
+  --status-warning: #B7791F;
+  --status-warning-bg: #FDF9F2;
+  --status-warning-border: #F6E6CC;
+
+  --status-danger: #B4443C;
+  --status-danger-bg: #FDF4F4;
+  --status-danger-border: #F7D4D2;
+
+  --status-info: #3F6EA8;
+  --status-info-bg: #F3F7FC;
+  --status-info-border: #D5E2F3;
+
+  /* Soft Layered Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 24px 64px -12px rgba(0, 0, 0, 0.14);
+
+  /* Layout Spacing */
+  --sidebar-width: 270px;
+  --sidebar-width-collapsed: 76px;
+  --header-height: 64px;
+
+  /* Typography Stacks */
+  --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-tamil: 'Noto Sans Tamil', 'Plus Jakarta Sans', sans-serif;
+  --font-hindi: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Border Radii (Large & Calm) */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Micro-interactions */
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ------------------------------------------------------------------------
+   OPTIONAL GRAPHITE DARK THEME (Pure Neutral Graphite - Zero Green)
+   ------------------------------------------------------------------------ */
+[data-theme="dark"] {
+  --bg-canvas: #0F0F12;
+  --bg-surface: #18181B;
+  --bg-surface-subtle: #202024;
+  --bg-surface-hover: #27272A;
+  --bg-surface-elevated: #202024;
+  --bg-surface-glass: rgba(24, 24, 27, 0.94);
+
+  --border-hairline: #2E2E33;
+  --border-default: #2E2E33;
+  --border-strong: #3F3F46;
+  --border-focus: rgba(255, 255, 255, 0.25);
+
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --text-inverse: #0B0B0F;
+
+  --btn-primary-bg: #FAFAFA;
+  --btn-primary-text: #0B0B0F;
+  --btn-primary-hover: #E4E4E7;
+  --btn-primary-focus-ring: rgba(255, 255, 255, 0.25);
+
+  --status-success: #4ADE80;
+  --status-success-bg: #142E1F;
+  --status-success-border: #1E462E;
+
+  --status-warning: #FBBF24;
+  --status-warning-bg: #32250C;
+  --status-warning-border: #4D3912;
+
+  --status-danger: #F87171;
+  --status-danger-bg: #331517;
+  --status-danger-border: #4C2023;
+
+  --status-info: #60A5FA;
+  --status-info-bg: #132742;
+  --status-info-border: #1C3A62;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 12px 36px rgba(0, 0, 0, 0.65);
+}
+
+/* Tabular Numerics for Finance & KPI Displays */
+.tabular-numbers, .kpi-num, [data-num] {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.03em;
+}
+
+/* Language Typography Rules */
+[lang="ta"], .lang-ta {
+  font-family: var(--font-tamil);
+  line-height: 1.6;
+}
+
+[lang="hi"], .lang-hi {
+  font-family: var(--font-hindi);
+  line-height: 1.6;
+}

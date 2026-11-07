@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="grad_admin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F4F4F5" />
+    </linearGradient>
+    <linearGradient id="gold_admin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <filter id="shadow_admin"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/></filter>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#grad_admin)" stroke="#ECECEE" stroke-width="1.5" filter="url(#shadow_admin)"/>
+  <circle cx="60" cy="48" r="24" fill="#111113"/>
+  <path d="M44 44 L49 32 L55 40 L60 28 L65 40 L71 32 L76 44 Z" fill="url(#gold_admin)"/>
+  <circle cx="60" cy="50" r="5" fill="#FFFFFF" opacity="0.9"/>
+  <path d="M32 98 C32 78 44 72 60 72 C76 72 88 78 88 98 Z" fill="#111113"/>
+  <path d="M54 72 L60 84 L66 72 Z" fill="url(#gold_admin)"/>
+  <circle cx="90" cy="90" r="14" fill="#FFFFFF" stroke="#ECECEE" stroke-width="1.5"/>
+  <circle cx="90" cy="90" r="11" fill="url(#gold_admin)"/>
+  <text x="90" y="94" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="8.5" font-weight="800" fill="#FFFFFF">HQ</text>
+</svg>

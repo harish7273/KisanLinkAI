@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="grad_fld" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F4F4F5" />
+    </linearGradient>
+    <linearGradient id="slate_fld" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <filter id="shadow_fld"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/></filter>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#grad_fld)" stroke="#ECECEE" stroke-width="1.5" filter="url(#shadow_fld)"/>
+  <circle cx="60" cy="48" r="22" fill="#334155"/>
+  <ellipse cx="60" cy="38" rx="26" ry="7" fill="url(#slate_fld)"/>
+  <!-- Map Pin Marker Emblem -->
+  <path d="M60 44 C56 44 53 47 53 50 C53 55 60 60 60 60 C60 60 67 55 67 50 C67 47 64 44 60 44 Z" fill="#EF4444"/>
+  <circle cx="60" cy="49" r="2" fill="#FFFFFF"/>
+  <path d="M34 98 C34 78 44 72 60 72 C76 72 86 78 86 98 Z" fill="#334155"/>
+  <line x1="60" y1="74" x2="60" y2="98" stroke="#94A3B8" stroke-width="2"/>
+  <circle cx="90" cy="90" r="14" fill="#FFFFFF" stroke="#ECECEE" stroke-width="1.5"/>
+  <circle cx="90" cy="90" r="11" fill="url(#slate_fld)"/>
+  <text x="90" y="94" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="7.5" font-weight="800" fill="#FFFFFF">KYC</text>
+</svg>

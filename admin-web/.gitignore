@@ -1,0 +1,19 @@
+# Dependencies and caches
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment and secrets
+.env
+*.local
+*.pem
+*.key
+
+# Temporary and log files
+*.log
+*.tmp
+temp_check_*.js
+
+# OS metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="grad_qua" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F4F4F5" />
+    </linearGradient>
+    <linearGradient id="green_qua" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16A34A" />
+      <stop offset="100%" stop-color="#15803D" />
+    </linearGradient>
+    <filter id="shadow_qua"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/></filter>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#grad_qua)" stroke="#ECECEE" stroke-width="1.5" filter="url(#shadow_qua)"/>
+  <circle cx="60" cy="48" r="22" fill="#1E293B"/>
+  <path d="M60 56 C52 56 48 48 48 40 C56 40 60 46 60 56 Z" fill="url(#green_qua)"/>
+  <path d="M60 56 C68 56 72 48 72 40 C64 40 60 46 60 56 Z" fill="#4ADE80"/>
+  <path d="M34 98 C34 78 44 72 60 72 C76 72 86 78 86 98 Z" fill="#1E293B"/>
+  <path d="M52 72 L60 98 L68 72 Z" fill="#FFFFFF" stroke="#ECECEE"/>
+  <circle cx="90" cy="90" r="14" fill="#FFFFFF" stroke="#ECECEE" stroke-width="1.5"/>
+  <circle cx="90" cy="90" r="11" fill="url(#green_qua)"/>
+  <text x="90" y="94" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="7" font-weight="800" fill="#FFFFFF">AGRI</text>
+</svg>
