@@ -641,7 +641,7 @@ html_content = """<!DOCTYPE html>
           <img src="assets/icons/kisan_logo.svg" alt="KisanAI" width="34" height="34" style="border-radius: 8px;" />
           <div class="brand-title-wrap">
             <h1 class="brand-name">KisanAI</h1>
-            <p style="font-size: 11px; color: var(--text-secondary); font-weight: 500;" id="appSubtitle">Enterprise Operations Deck</p>
+            <p style="font-size: 11px; color: var(--text-secondary); font-weight: 500;" id="appSubtitle">Enterprise Operations Deck • Cloud Node</p>
           </div>
         </div>
 
@@ -913,12 +913,12 @@ html_content = """<!DOCTYPE html>
       },
 
       isAuthenticated() {
-        return !!sessionStorage.getItem(this.SESSION_KEY);
+        return !!localStorage.getItem(this.SESSION_KEY);
       },
 
       getSession() {
         try {
-          return JSON.parse(sessionStorage.getItem(this.SESSION_KEY) || 'null');
+          return JSON.parse(localStorage.getItem(this.SESSION_KEY) || 'null');
         } catch (_) {
           return null;
         }
@@ -940,12 +940,12 @@ html_content = """<!DOCTYPE html>
           loginTime: new Date().toISOString(),
           token: 'kisan_sec_' + Math.random().toString(36).slice(2, 10)
         };
-        sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+        localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
         return { success: true, session };
       },
 
       logout() {
-        sessionStorage.removeItem(this.SESSION_KEY);
+        localStorage.removeItem(this.SESSION_KEY);
         window.location.hash = '';
         window.location.reload();
       }
