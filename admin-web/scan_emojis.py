@@ -2,9 +2,10 @@ import os
 import re
 
 EMOJI_PATTERN = re.compile(r'[\U00010000-\U0010ffff]|[\u2600-\u26FF]|[\u2700-\u27BF]|[\u2B50-\u2B55]|[\u2300-\u23FF]|[\u20D0-\u20FF]|[\u2190-\u21FF]|[\u2900-\u297F]|[\u25A0-\u25FF]|[\u2500-\u257F]')
+PROHIBITED_TOKENS = ['carto.com', 'apikey', 'vidhai', '10.88.', '192.168.']
 
 def scan_files():
-    base_dir = r"d:\Kisan AI app\admin_dashboard"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     files_to_check = [
         "index.html",
         "preview.html",
@@ -12,12 +13,13 @@ def scan_files():
         os.path.join("js", "i18n.js"),
         os.path.join("js", "data-store.js"),
         os.path.join("js", "map-engine.js"),
+        os.path.join("js", "kisan-map.js"),
         os.path.join("js", "icons-manifest.js"),
         os.path.join("css", "tokens.css"),
         os.path.join("css", "components.css"),
     ]
 
-    found_emojis = []
+    violations = []
     
     for rel_path in files_to_check:
         full_path = os.path.join(base_dir, rel_path)
@@ -26,31 +28,30 @@ def scan_files():
         with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
             lines = f.readlines()
             for line_no, line in enumerate(lines, 1):
+                # Emoji check
                 matches = EMOJI_PATTERN.findall(line)
                 if matches:
                     hex_matches = [f"U+{ord(m):04X}" for m in matches]
-                    found_emojis.append({
-                        "file": rel_path,
-                        "line": line_no,
-                        "hex": hex_matches,
-                        "content": line.strip().encode('ascii', 'backslashreplace').decode('ascii')
-                    })
+                    violations.append(f"[{rel_path}:{line_no}] Emoji {hex_matches}: {line.strip()[:60]}")
+                # Prohibited tokens
+                line_lower = line.lower()
+                for tok in PROHIBITED_TOKENS:
+                    if tok in line_lower:
+                        violations.append(f"[{rel_path}:{line_no}] Prohibited token '{tok}': {line.strip()[:60]}")
 
     print("====================================================")
-    print("  ZERO-EMOJI ENFORCEMENT LINT SCAN")
+    print("  ZERO-EMOJI & CLEAN CODEBASE CI SCAN")
     print("====================================================")
     
-    if found_emojis:
-        print(f"FAILED: Found {len(found_emojis)} line(s) containing emojis/pictographs:\n")
-        for item in found_emojis:
-            print(f"[{item['file']}:{item['line']}] {item['hex']}")
-            print(f"  > {item['content']}\n")
+    if violations:
+        print(f"FAILED: Found {len(violations)} violation(s):\n")
+        for item in violations:
+            print(f"  {item}")
         return False
     else:
-        print("PASSED: 0 emojis or unicode pictographs found across the entire UI codebase!")
+        print("PASSED: 0 violations. Clean production codebase.")
         return True
 
 if __name__ == "__main__":
-    success = scan_files()
-    if not success:
-        exit(1)
+    ok = scan_files()
+    exit(0 if ok else 1)

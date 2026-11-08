@@ -87,4 +87,9 @@ build/
 local.properties
 **/android/.gradle/
 **/android/app/build/
-**/android/build/
+**/android/build/
+# Keystore & Android Signing
+key.properties
+*.jks
+*.keystore
+

@@ -1,17 +1,16 @@
 import 'package:flutter/foundation.dart';
-import 'dart:io' show Platform;
 
 class ApiConfig {
-  /// Machine's current LAN IP on Wi-Fi (accessible from physical Android phones on same network)
-  static const String machineLanIp = '10.88.48.167';
+  /// Authoritative production cloud backend URL (Permanent HTTPS)
+  static const String hostedCloudApiUrl = 'https://kisanlinkai-backend.onrender.com';
 
-  /// Override this if you need a custom host (e.g. ngrok or deployed server)
+  /// Override this if testing with a custom cloud host
   static String? customBackendUrl;
 
-  /// Default Razorpay Key ID
+  /// Razorpay Key ID
   static const String defaultRazorpayKeyId = 'rzp_test_TOT4ASXnGKXbXF';
 
-  /// Cached working URL once a successful handshake is made
+  /// Cached working URL
   static String? _workingBackendUrl;
 
   /// Returns candidate URLs in order of priority based on environment
@@ -24,27 +23,17 @@ class ApiConfig {
     }
 
     if (kIsWeb) {
-      return ['http://localhost:8080'];
+      return [hostedCloudApiUrl, 'http://localhost:8000'];
     }
 
-    try {
-      if (Platform.isAndroid) {
-        return [
-          'http://$machineLanIp:8080', // Wi-Fi LAN IP (Physical Device & Emulator)
-          'http://127.0.0.1:8080',     // USB Tether with ADB reverse
-          'http://localhost:8080',     // Localhost
-          'http://10.0.2.2:8080',      // Android Emulator QEMU alias
-        ];
-      }
-    } catch (_) {}
-
+    // HTTPS cloud endpoint is always primary
     return [
-      'http://localhost:8080',
-      'http://$machineLanIp:8080',
+      hostedCloudApiUrl,
+      'http://10.0.2.2:8000', // Local emulator fallback
     ];
   }
 
-  /// Resolves the payment backend base URL based on running platform
+  /// Resolves the payment backend base URL
   static String get paymentBackendUrl {
     if (_workingBackendUrl != null && _workingBackendUrl!.isNotEmpty) {
       return _workingBackendUrl!;
@@ -52,21 +41,10 @@ class ApiConfig {
     if (customBackendUrl != null && customBackendUrl!.isNotEmpty) {
       return customBackendUrl!;
     }
-    if (kIsWeb) {
-      return 'http://localhost:8080';
-    }
-
-    try {
-      if (Platform.isAndroid) {
-        return 'http://$machineLanIp:8080';
-      }
-    } catch (_) {}
-
-    return 'http://localhost:8080';
+    return hostedCloudApiUrl;
   }
 
   static void setWorkingUrl(String url) {
     _workingBackendUrl = url;
   }
 }
-

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../constants/api_config.dart';
 import 'product_preview_screen.dart';
 
 class AiPricingScreen extends StatefulWidget {
@@ -100,7 +101,7 @@ class _AiPricingScreenState
       final response = await http
           .post(
             Uri.parse(
-              "http://10.0.2.2:8000/smart-price",
+              "${ApiConfig.paymentBackendUrl}/api/v1/crops/smart-price",
             ),
             headers: {
               "Content-Type":

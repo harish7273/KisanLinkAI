@@ -901,7 +901,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     if (response == null || successfulUrl == null) {
       throw Exception(
-        'Payment backend unreachable ($lastError). Please verify Spring Boot is running on port 8080 at http://${ApiConfig.machineLanIp}:8080',
+        'Payment backend unreachable ($lastError). Please verify connection to ${ApiConfig.hostedCloudApiUrl}',
       );
     }
 
