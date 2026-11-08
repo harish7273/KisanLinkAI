@@ -19,6 +19,7 @@ from .seed import seed_database
 from .integrity import check_integrity
 from .kyc import router as kyc_router
 from .support import router as support_router
+from .auth import router as auth_router, require_staff_auth
 
 app = FastAPI(
     title="KisanAI Unified Cloud API",
@@ -29,6 +30,7 @@ app = FastAPI(
 # CORS configuration for GitHub Pages and local development
 app.include_router(kyc_router)
 app.include_router(support_router)
+app.include_router(auth_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -656,7 +658,7 @@ async def trigger_sos(req: SosAlertRequest):
 # ============================================================
 
 @app.get("/api/v1/admin/overview")
-def admin_overview():
+def admin_overview(staff: Dict[str, Any] = Depends(require_staff_auth)):
     with db_session() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT count(*) FROM users WHERE role = 'farmer';")
@@ -687,7 +689,7 @@ def admin_overview():
         }
 
 @app.get("/api/v1/admin/audit-logs")
-def get_audit_logs(limit: int = 50):
+def get_audit_logs(limit: int = 50, staff: Dict[str, Any] = Depends(require_staff_auth)):
     with db_session() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?;", (limit,))
