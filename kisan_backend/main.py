@@ -17,6 +17,7 @@ from .state_machine import (
 )
 from .seed import seed_database
 from .integrity import check_integrity
+from .kyc import router as kyc_router
 
 app = FastAPI(
     title="KisanAI Unified Cloud API",
@@ -25,6 +26,7 @@ app = FastAPI(
 )
 
 # CORS configuration for GitHub Pages and local development
+app.include_router(kyc_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -560,6 +562,13 @@ class PayoutCreateRequest(BaseModel):
 def request_payout(req: PayoutCreateRequest):
     with db_session() as conn:
         cursor = conn.cursor()
+        cursor.execute("SELECT kyc_status, is_verified FROM users WHERE id = ?;", (req.user_id,))
+        u = cursor.fetchone()
+        if not u or u["kyc_status"] != "APPROVED":
+            raise HTTPException(
+                status_code=403,
+                detail="HTTP 403 VERIFICATION_REQUIRED: Only verified accounts can receive payouts."
+            )
         cursor.execute("SELECT * FROM wallets WHERE user_id = ?;", (req.user_id,))
         wal = cursor.fetchone()
         if not wal or wal["balance"] < req.amount:
