@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: kisanai-cloud-api
+    env: python
+    buildCommand: pip install -r requirements-api.txt && python -m kisan_backend.seed
+    startCommand: uvicorn kisan_backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEMO_OPEN
+        value: "true"
+      - key: DATA_MODE
+        value: sample
+      - key: FOUNDER_NAME
+        sync: false
+      - key: FOUNDER_PHONE
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
