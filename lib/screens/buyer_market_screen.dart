@@ -3361,27 +3361,27 @@ class _BuyerMarketScreenState extends State<BuyerMarketScreen> {
                         ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pop(ctx);
-                            final dummyProduct = ProductModel(
-                              id: 'prod_${f['farmerId']}',
+                            final chatProduct = ProductModel(
+                              id: f['id'] ?? 'prod_${f['farmerId']}',
                               farmerId: f['farmerId'],
                               farmerName: f['farmerName'],
                               name: f['crop'],
-                              category: 'Produce',
-                              price: f['price'],
-                              quantity: 500,
-                              unit: 'kg',
-                              description: 'Direct farm produce',
+                              category: f['category'] ?? 'Produce',
+                              price: (f['price'] as num?)?.toDouble() ?? 25.0,
+                              quantity: (f['quantity'] as num?)?.toInt() ?? 100,
+                              unit: f['unit'] ?? 'kg',
+                              description: 'Direct harvest: ${f['crop']} from ${f['location']}',
                               location: f['location'],
-                              image: f['image'] ?? 'assets/images/organic_tomatoes.png',
+                              image: f['image'] ?? 'assets/crops/tomato.png',
                               available: true,
                               createdAt: DateTime.now(),
-                              organic: true,
-                              quality: 'Grade A',
+                              organic: f['organic'] ?? true,
+                              quality: f['quality'] ?? 'AGMARK Certified',
                             );
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => ChatScreen(product: dummyProduct),
+                                builder: (_) => ChatScreen(product: chatProduct),
                               ),
                             );
                           },

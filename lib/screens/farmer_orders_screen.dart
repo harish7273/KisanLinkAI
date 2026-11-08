@@ -2009,40 +2009,24 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
               height: 20,
             ),
 
-            // LOAD SAMPLE ORDERS BUTTON
+            // REFRESH ORDERS BUTTON
             SizedBox(
               height: 46,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user != null) {
-                    await DataSeedService.ensureFarmerDataSeeded(
-                      farmerUid: user.uid,
-                      farmerName: user.displayName ?? 'Farmer',
-                      phone: user.phoneNumber,
-                    );
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(tr('load_sample_success', defaultText: 'Sample orders loaded successfully! 🌱')),
-                          backgroundColor: green,
-                        ),
-                      );
-                    }
-                  }
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {});
                 },
-                icon: const Icon(Icons.refresh_rounded, size: 19),
+                icon: const Icon(Icons.refresh_rounded, size: 19, color: green),
                 label: Text(
-                  tr('load_sample_orders', defaultText: 'Load Sample Orders'),
+                  tr('refresh_orders', defaultText: 'Check for New Orders'),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
+                    color: Colors.white,
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: green,
-                  foregroundColor: Colors.black,
-                  elevation: 0,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: green),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

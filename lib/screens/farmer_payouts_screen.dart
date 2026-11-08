@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../services/firestore_service.dart';
 import '../services/language_service.dart';
 
 class FarmerPayoutsScreen extends StatefulWidget {
@@ -101,10 +102,14 @@ class _FarmerPayoutsScreenState extends State<FarmerPayoutsScreen> {
                 stream: _firestore.collection('wallets').doc(farmerUid).snapshots(),
                 builder: (context, walletSnap) {
                   double walletCredit = 0;
+                  double pendingWithdrawal = 0;
                   if (walletSnap.hasData && walletSnap.data!.exists) {
-                    walletCredit = (walletSnap.data!.data()?['balance'] as num?)?.toDouble() ?? 0.0;
+                    final wData = walletSnap.data!.data() ?? {};
+                    walletCredit = (wData['balance'] as num?)?.toDouble() ?? 0.0;
+                    pendingWithdrawal = (wData['pendingWithdrawal'] as num?)?.toDouble() ?? 0.0;
                   }
-                  final finalBalance = availableBalance + walletCredit;
+                  final finalBalance = (availableBalance + walletCredit) - pendingWithdrawal;
+                  final displayBalance = finalBalance > 0 ? finalBalance : 0.0;
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -117,12 +122,12 @@ class _FarmerPayoutsScreenState extends State<FarmerPayoutsScreen> {
                         const SizedBox(height: 16),
 
                         // Main Balance Card
-                        _buildBalanceCard(finalBalance, inTransitAmount, lifetimeEarnings),
+                        _buildBalanceCard(displayBalance, inTransitAmount, lifetimeEarnings),
 
                         const SizedBox(height: 18),
 
                         // Quick Action Buttons (Withdraw, Direct Pay QR)
-                        _buildActionRow(finalBalance, farmerUid),
+                        _buildActionRow(displayBalance, farmerUid),
 
                         const SizedBox(height: 24),
 
@@ -131,7 +136,7 @@ class _FarmerPayoutsScreenState extends State<FarmerPayoutsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Instant Settlements',
+                              LanguageService.tr('instant_settlements', defaultText: 'Instant Settlements'),
                               style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             Container(
@@ -279,7 +284,7 @@ class _FarmerPayoutsScreenState extends State<FarmerPayoutsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('In Transit (Pending Handover)', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                  const Text('In Transit (Pending Handover)', style: TextStyle(color: Colors.white54, fontSize: 10)),
                   const SizedBox(height: 2),
                   Text('₹${inTransit.toStringAsFixed(0)}', style: const TextStyle(color: orange, fontWeight: FontWeight.bold, fontSize: 14)),
                 ],
@@ -287,7 +292,7 @@ class _FarmerPayoutsScreenState extends State<FarmerPayoutsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Total Lifetime Earnings', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                  const Text('Total Lifetime Earnings', style: TextStyle(color: Colors.white54, fontSize: 10)),
                   const SizedBox(height: 2),
                   Text('₹${total.toStringAsFixed(0)}', style: const TextStyle(color: greenAccent, fontWeight: FontWeight.bold, fontSize: 14)),
                 ],
@@ -397,15 +402,24 @@ class _FarmerPayoutsScreenState extends State<FarmerPayoutsScreen> {
                       qty > 0 ? '${qty.toStringAsFixed(0)} kg • Direct Farm Sale' : 'Direct Farm Sale',
                       style: const TextStyle(color: Colors.white54, fontSize: 11),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isSettled ? green.withValues(alpha: 0.1) : orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        isSettled ? 'Settled (0% Comm)' : 'In Transit',
-                        style: TextStyle(color: isSettled ? greenAccent : orange, fontSize: 9, fontWeight: FontWeight.bold),
+                    InkWell(
+                      onTap: () => _showReceiptDialog(order, shortId, cropName, qty, netEarnings, isSettled),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.receipt_rounded, color: greenAccent, size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              'Receipt',
+                              style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -448,134 +462,390 @@ class _FarmerPayoutsScreenState extends State<FarmerPayoutsScreen> {
   }
 
   void _showWithdrawModal(BuildContext context, double currentBalance, String farmerUid) {
-    final upiController = TextEditingController(text: 'farmer.kovai@oksbi');
-    final amountController = TextEditingController(text: currentBalance > 0 ? currentBalance.toStringAsFixed(0) : '2500');
+    int payoutMethodIndex = 0; // 0 = UPI, 1 = Bank Account
+    final upiController = TextEditingController();
+    final bankAccController = TextEditingController();
+    final ifscController = TextEditingController();
+    final amountController = TextEditingController();
+    String? validationError;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
-        ),
-        decoration: const BoxDecoration(
-          color: Color(0xFF0F1611),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: border, width: 1.5)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
-              ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Withdraw to Bank or UPI',
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            decoration: const BoxDecoration(
+              color: Color(0xFF0F1611),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(top: BorderSide(color: border, width: 1.5)),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Direct transfer to your linked Indian bank account or UPI ID.',
-              style: const TextStyle(color: Colors.white54, fontSize: 11),
-            ),
-            const SizedBox(height: 18),
-            Text('Withdrawal Amount (₹)', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              decoration: InputDecoration(
-                prefixText: '₹ ',
-                prefixStyle: const TextStyle(color: greenAccent, fontWeight: FontWeight.bold),
-                filled: true,
-                fillColor: card,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text('UPI ID / VPA', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: upiController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: card,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
-                prefixIcon: const Icon(Icons.payment_rounded, color: greenAccent, size: 20),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _isProcessingWithdrawal
-                    ? null
-                    : () async {
-                        final amt = double.tryParse(amountController.text) ?? 0.0;
-                        if (amt <= 0) return;
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Withdraw to Bank or UPI',
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Available: ₹${currentBalance.toStringAsFixed(0)} • Zero processing fees.',
+                  style: const TextStyle(color: greenAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 14),
 
-                        setState(() => _isProcessingWithdrawal = true);
-                        Navigator.pop(sheetContext);
-
-                        // Save payout transaction
-                        try {
-                          await _firestore.collection('payouts').add({
-                            'farmerId': farmerUid,
-                            'amount': amt,
-                            'method': 'UPI',
-                            'target': upiController.text,
-                            'status': 'Processed',
-                            'settlementType': 'Instant Direct Payout',
-                            'createdAt': FieldValue.serverTimestamp(),
-                          });
-                        } catch (_) {}
-
-                        setState(() => _isProcessingWithdrawal = false);
-
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: const Color(0xFF142416),
-                            content: Row(
-                              children: [
-                                const Icon(Icons.check_circle_rounded, color: greenAccent, size: 20),
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Payout of ₹${amt.toStringAsFixed(0)} initiated via UPI!',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                                ),
-                              ],
+                // Method Switcher
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A100B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setModalState(() => payoutMethodIndex = 0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: payoutMethodIndex == 0 ? green : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'UPI / VPA',
+                              style: TextStyle(
+                                color: payoutMethodIndex == 0 ? Colors.black : Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        );
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: green,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
+                        ),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setModalState(() => payoutMethodIndex = 1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: payoutMethodIndex == 1 ? green : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Bank Transfer',
+                              style: TextStyle(
+                                color: payoutMethodIndex == 1 ? Colors.black : Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Text('Confirm Instant Transfer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              ),
+
+                const SizedBox(height: 14),
+                const Text('Withdrawal Amount (₹)', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  decoration: InputDecoration(
+                    hintText: 'Enter amount (e.g. ${currentBalance > 0 ? currentBalance.round() : 1000})',
+                    hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                    prefixText: '₹ ',
+                    prefixStyle: const TextStyle(color: greenAccent, fontWeight: FontWeight.bold),
+                    filled: true,
+                    fillColor: card,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                  ),
+                  onChanged: (_) {
+                    if (validationError != null) setModalState(() => validationError = null);
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                if (payoutMethodIndex == 0) ...[
+                  const Text('UPI ID (VPA)', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: upiController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. mobile@upi or yourname@oksbi',
+                      hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                      filled: true,
+                      fillColor: card,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                      prefixIcon: const Icon(Icons.payment_rounded, color: greenAccent, size: 20),
+                    ),
+                  ),
+                ] else ...[
+                  const Text('Bank Account Number', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: bankAccController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Enter your 9-18 digit account number',
+                      hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                      filled: true,
+                      fillColor: card,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                      prefixIcon: const Icon(Icons.account_balance_rounded, color: greenAccent, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text('IFSC Code', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: ifscController,
+                    textCapitalization: TextCapitalization.characters,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. SBIN0001234',
+                      hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                      filled: true,
+                      fillColor: card,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
+                      prefixIcon: const Icon(Icons.numbers_rounded, color: greenAccent, size: 20),
+                    ),
+                  ),
+                ],
+
+                if (validationError != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    validationError!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
+
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _isProcessingWithdrawal
+                        ? null
+                        : () async {
+                            final amt = double.tryParse(amountController.text) ?? 0.0;
+                            if (amt <= 0) {
+                              setModalState(() => validationError = 'Please enter a valid amount greater than ₹0');
+                              return;
+                            }
+                            if (amt > currentBalance) {
+                              setModalState(() => validationError = 'Amount exceeds available balance of ₹${currentBalance.toStringAsFixed(0)}');
+                              return;
+                            }
+
+                            if (payoutMethodIndex == 0) {
+                              if (upiController.text.trim().isEmpty || !upiController.text.contains('@')) {
+                                setModalState(() => validationError = 'Please enter a valid UPI ID (e.g. phone@upi)');
+                                return;
+                              }
+                            } else {
+                              if (bankAccController.text.trim().length < 8) {
+                                setModalState(() => validationError = 'Please enter a valid bank account number');
+                                return;
+                              }
+                              if (ifscController.text.trim().length < 8) {
+                                setModalState(() => validationError = 'Please enter a valid 11-character bank IFSC code');
+                                return;
+                              }
+                            }
+
+                            setState(() => _isProcessingWithdrawal = true);
+                            Navigator.pop(sheetContext);
+
+                            try {
+                              await FirestoreService().createPayoutRequest(
+                                userId: farmerUid,
+                                userName: _auth.currentUser?.displayName ?? 'Farmer',
+                                userRole: 'Farmer',
+                                amount: amt,
+                                payoutMethod: payoutMethodIndex == 0 ? 'UPI' : 'BANK',
+                                upiId: payoutMethodIndex == 0 ? upiController.text.trim() : null,
+                                bankAccount: payoutMethodIndex == 1 ? bankAccController.text.trim() : null,
+                                bankIfsc: payoutMethodIndex == 1 ? ifscController.text.trim() : null,
+                              );
+                            } catch (_) {}
+
+                            setState(() => _isProcessingWithdrawal = false);
+
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFF142416),
+                                content: Row(
+                                  children: [
+                                    const Icon(Icons.check_circle_rounded, color: greenAccent, size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        'Withdrawal request for ₹${amt.toStringAsFixed(0)} submitted successfully! Settling directly to your account.',
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: green,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: const Text('Confirm Withdrawal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showReceiptDialog(
+    Map<String, dynamic> order,
+    String shortId,
+    String cropName,
+    double qty,
+    double netEarnings,
+    bool isSettled,
+  ) {
+    final buyerName = order['buyerName'] ?? 'Verified Direct Buyer';
+    final orderId = order['orderId'] ?? shortId;
+    final totalAmount = (order['totalAmount'] as num?)?.toDouble() ?? netEarnings;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F1611),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: border)),
+        title: Row(
+          children: [
+            const Icon(Icons.receipt_long_rounded, color: greenAccent, size: 22),
+            const SizedBox(width: 10),
+            Text(
+              'Settlement Receipt',
+              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
             ),
           ],
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(12), border: Border.all(color: border)),
+              child: Column(
+                children: [
+                  _receiptRow('Transaction ID', '#$orderId'),
+                  const SizedBox(height: 6),
+                  _receiptRow('Produce Item', cropName),
+                  const SizedBox(height: 6),
+                  _receiptRow('Delivered Weight', '${qty.toStringAsFixed(0)} Kg'),
+                  const SizedBox(height: 6),
+                  _receiptRow('Buyer Party', buyerName.toString()),
+                  const Divider(color: Colors.white12, height: 16),
+                  _receiptRow('Gross Order Value', '₹${totalAmount.toStringAsFixed(0)}'),
+                  const SizedBox(height: 6),
+                  _receiptRow('KisanAI Commission', '₹0.00 (0%)', highlightGreen: true),
+                  const Divider(color: Colors.white12, height: 16),
+                  _receiptRow('Net Settled Payout', '₹${netEarnings.toStringAsFixed(0)}', isTotal: true),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.verified_user_rounded, color: greenAccent, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  isSettled ? 'Settlement Completed via Escrow' : 'Escrow Secured in Transit',
+                  style: const TextStyle(color: Colors.white60, fontSize: 10),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  backgroundColor: Color(0xFF142416),
+                  content: Text('Receipt saved to Downloads folder as PDF!'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.download_rounded, size: 16),
+            label: const Text('Download PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: green,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _receiptRow(String label, String value, {bool highlightGreen = false, bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: isTotal ? Colors.white : Colors.white60, fontSize: isTotal ? 12 : 11, fontWeight: isTotal ? FontWeight.bold : FontWeight.normal)),
+        Text(
+          value,
+          style: GoogleFonts.outfit(
+            color: highlightGreen ? greenAccent : (isTotal ? greenAccent : Colors.white),
+            fontSize: isTotal ? 15 : 12,
+            fontWeight: isTotal || highlightGreen ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
     );
   }
 

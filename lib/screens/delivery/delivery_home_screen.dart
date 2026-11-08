@@ -539,6 +539,25 @@ class _DeliveryHomeScreenState extends State<DeliveryHomeScreen> {
                 ),
               ),
               const Spacer(),
+              if (selectedTab == 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: yellow.withValues(alpha: 0.5)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.timer_outlined, color: yellow, size: 11),
+                      SizedBox(width: 3),
+                      Text('45s Priority Match', style: TextStyle(color: yellow, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               const Icon(Icons.location_on_rounded, color: yellow, size: 14),
               const SizedBox(width: 3),
               Text(
@@ -625,7 +644,72 @@ class _DeliveryHomeScreenState extends State<DeliveryHomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+
+          // Smart Vehicle Capacity Match Badge
+          Builder(
+            builder: (context) {
+              final nameLower = order.firstProductName.toLowerCase();
+              final isPerishable = nameLower.contains('tomato') ||
+                  nameLower.contains('banana') ||
+                  nameLower.contains('milk') ||
+                  nameLower.contains('greens') ||
+                  nameLower.contains('spinach') ||
+                  nameLower.contains('mango') ||
+                  nameLower.contains('berry');
+              final vehicleMatch = isPerishable
+                  ? 'Reefer Cold Chain (2°C - 4°C)'
+                  : (order.firstProductQuantity >= 300
+                      ? 'Tata Ace 1.5T / 2T'
+                      : 'Rural 4x4 / Ace Mini');
+              final isPartnerMatch = partner != null &&
+                  partner!.vehicleType.isNotEmpty &&
+                  (isPerishable
+                      ? partner!.vehicleType.toLowerCase().contains('reefer')
+                      : true);
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isPerishable ? const Color(0xFF0F1E29) : const Color(0xFF132215),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isPerishable
+                        ? Colors.cyanAccent.withValues(alpha: 0.4)
+                        : Colors.greenAccent.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isPerishable ? Icons.ac_unit_rounded : Icons.local_shipping_rounded,
+                      color: isPerishable ? Colors.cyanAccent : Colors.greenAccent,
+                      size: 13,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Matched: $vehicleMatch',
+                        style: TextStyle(
+                          color: isPerishable ? Colors.cyanAccent : Colors.greenAccent,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isPartnerMatch)
+                      const Text(
+                        '✓ Capable',
+                        style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
 
           // Action Buttons
           Row(

@@ -31,24 +31,35 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
   static const Color border = Color(0xFF223425);
 
   final _formKey = GlobalKey<FormState>();
-  final _qtyController = TextEditingController(text: '500');
-  final _priceController = TextEditingController(text: '28');
-  final _addressController = TextEditingController(
-    text: 'Ukkadam Central Agro Market, Coimbatore, TN - 641001',
-  );
+  final _qtyController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _addressController = TextEditingController();
 
-  String _selectedCrop = 'Organic Tomato (Fresh Harvest)';
+  String _selectedCrop = 'Organic Tomato';
   String _selectedDestination = 'Ukkadam (Coimbatore)';
-  bool _isBranchA = false; // false = Branch B (Delivery Partner), true = Branch A (Direct Farm Pickup)
+  bool _isBranchA = false;
   bool _coldChainRequired = true;
   bool _isPosting = false;
 
   final List<Map<String, dynamic>> _cropOptions = [
-    {'name': 'Organic Tomato (Fresh Harvest)', 'category': 'Vegetable', 'defaultPrice': 28.0, 'unit': 'kg'},
-    {'name': 'Fresh Farm Bananas (Nendran)', 'category': 'Fruit', 'defaultPrice': 40.0, 'unit': 'kg'},
-    {'name': 'Sweet Golden Corn', 'category': 'Grain', 'defaultPrice': 24.0, 'unit': 'kg'},
-    {'name': 'Sona Masoori Paddy (Grade A)', 'category': 'Grain', 'defaultPrice': 32.0, 'unit': 'kg'},
-    {'name': 'Banganapalli Mango (Grade A)', 'category': 'Fruit', 'defaultPrice': 65.0, 'unit': 'kg'},
+    {'name': 'Organic Tomato', 'category': 'Vegetable', 'mandiPrice': 32.0, 'unit': 'kg'},
+    {'name': 'Country Onion (Small)', 'category': 'Vegetable', 'mandiPrice': 45.0, 'unit': 'kg'},
+    {'name': 'Bellary Big Onion', 'category': 'Vegetable', 'mandiPrice': 26.0, 'unit': 'kg'},
+    {'name': 'Ooty Potato', 'category': 'Vegetable', 'mandiPrice': 34.0, 'unit': 'kg'},
+    {'name': 'Green Chilli (Samba)', 'category': 'Vegetable', 'mandiPrice': 55.0, 'unit': 'kg'},
+    {'name': 'Ooty Carrot', 'category': 'Vegetable', 'mandiPrice': 42.0, 'unit': 'kg'},
+    {'name': 'Brinjal (Varikatri)', 'category': 'Vegetable', 'mandiPrice': 28.0, 'unit': 'kg'},
+    {'name': 'Ladies Finger (Okra)', 'category': 'Vegetable', 'mandiPrice': 30.0, 'unit': 'kg'},
+    {'name': 'Fresh Farm Bananas (Nendran)', 'category': 'Fruit', 'mandiPrice': 42.0, 'unit': 'kg'},
+    {'name': 'Red Banana (Sevvazhai)', 'category': 'Fruit', 'mandiPrice': 65.0, 'unit': 'kg'},
+    {'name': 'Banganapalli Mango', 'category': 'Fruit', 'mandiPrice': 70.0, 'unit': 'kg'},
+    {'name': 'Sweet Golden Corn', 'category': 'Grain', 'mandiPrice': 22.0, 'unit': 'kg'},
+    {'name': 'Sona Masoori Paddy', 'category': 'Grain', 'mandiPrice': 35.0, 'unit': 'kg'},
+    {'name': 'Fresh Coconut (Pollachi)', 'category': 'Fruit', 'mandiPrice': 24.0, 'unit': 'piece'},
+    {'name': 'Drumstick (Moringa)', 'category': 'Vegetable', 'mandiPrice': 48.0, 'unit': 'kg'},
+    {'name': 'Ginger (Fresh Farm)', 'category': 'Spice', 'mandiPrice': 110.0, 'unit': 'kg'},
+    {'name': 'Garlic (Hill Country)', 'category': 'Spice', 'mandiPrice': 180.0, 'unit': 'kg'},
+    {'name': 'Spinach (Palak Leaves)', 'category': 'Vegetable', 'mandiPrice': 25.0, 'unit': 'bunch'},
   ];
 
   final Map<String, LatLng> _destinationHubs = {
@@ -57,7 +68,33 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
     'RS Puram (Coimbatore)': LocationDirectoryService.rsPuram,
     'Tiruppur City Market': LocationDirectoryService.resolveLocation('Tiruppur'),
     'Erode Agricultural Depot': LocationDirectoryService.erode,
+    'Madurai Mattuthavani Market': LocationDirectoryService.resolveLocation('Madurai'),
+    'Salem APMC Market': LocationDirectoryService.resolveLocation('Salem'),
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBuyerAddress();
+  }
+
+  void _loadBuyerAddress() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      FirebaseFirestore.instance.collection('users').doc(user.uid).get().then((doc) {
+        if (doc.exists && mounted) {
+          final data = doc.data() ?? {};
+          final village = data['village'] ?? '';
+          final dist = data['district'] ?? '';
+          final state = data['state'] ?? '';
+          final combined = [village, dist, state].where((s) => s.toString().isNotEmpty).join(', ');
+          if (combined.isNotEmpty && _addressController.text.isEmpty) {
+            setState(() => _addressController.text = combined);
+          }
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -65,6 +102,14 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
     _priceController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  double get _currentMandiPrice {
+    final match = _cropOptions.firstWhere(
+      (c) => c['name'] == _selectedCrop,
+      orElse: () => _cropOptions.first,
+    );
+    return (match['mandiPrice'] as num).toDouble();
   }
 
   double get _totalProduceAmount {
@@ -77,6 +122,12 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
 
   double get _totalBudget => _totalProduceAmount + _deliveryFee;
 
+  void _applyMandiBenchmark() {
+    setState(() {
+      _priceController.text = _currentMandiPrice.toStringAsFixed(0);
+    });
+  }
+
   Future<void> _postDemand() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -84,11 +135,11 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
 
     final user = FirebaseAuth.instance.currentUser;
     final buyerId = user?.uid ?? 'buyer_demo_user';
-    final buyerName = user?.displayName ?? 'Fresh Farms Hypermarket';
-    final buyerPhone = user?.phoneNumber ?? '+91 98421 55670';
+    final buyerName = user?.displayName ?? 'Verified Direct Buyer';
+    final buyerPhone = user?.phoneNumber ?? '';
 
-    final double qty = double.tryParse(_qtyController.text) ?? 500.0;
-    final double price = double.tryParse(_priceController.text) ?? 28.0;
+    final double qty = double.tryParse(_qtyController.text) ?? 0.0;
+    final double price = double.tryParse(_priceController.text) ?? 0.0;
 
     final destCoords = _destinationHubs[_selectedDestination] ?? LocationDirectoryService.ukkadam;
     final String deliveryAddress = _addressController.text.trim();
@@ -97,23 +148,23 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
     final String deliveryOtp = (1000 + Random().nextInt(9000)).toString();
 
     try {
-      // 1. Post to shared orders collection (Single source of truth)
+      // 1. Post to shared orders collection
       await FirebaseFirestore.instance.collection('orders').doc(orderId).set({
         'orderId': orderId,
         'buyerId': buyerId,
         'buyerName': buyerName,
         'buyerPhone': buyerPhone,
-        'farmerId': '', // Open demand available to all qualified farmers
+        'farmerId': '',
         'farmerName': 'Awaiting Farmer Acceptance',
         'farmerPhone': '',
-        'farmerLocation': 'Tamil Nadu Regional Farms',
-        'pickupAddress': 'Udumalpet Organic Farm, Tiruppur Dist, TN',
+        'farmerLocation': 'Regional Farming Hubs',
+        'pickupAddress': 'Direct Farm Gate, Regional Tamil Nadu',
         'pickupLatitude': 10.5855,
         'pickupLongitude': 77.2492,
-        'deliveryAddress': deliveryAddress,
+        'deliveryAddress': deliveryAddress.isNotEmpty ? deliveryAddress : _selectedDestination,
         'dropLatitude': destCoords.latitude,
         'dropLongitude': destCoords.longitude,
-        'distanceKm': 71.5,
+        'distanceKm': 68.0,
         'orderStatus': 'Demand Posted',
         'deliveryStatus': _isBranchA ? 'Buyer Self Pickup' : 'Pending Farmer Acceptance',
         'paymentStatus': 'Escrow Reserved',
@@ -126,7 +177,8 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
         'deliveryFee': _deliveryFee,
         'subtotal': _totalProduceAmount,
         'isDemandBroadcast': true,
-        'notes': 'Buyer posted demand for $qty kg of $_selectedCrop. ${_isBranchA ? "Branch A: Direct Farm Pickup" : "Branch B: KisanAI Delivery Partner required"}',
+        'mandiBenchmark': _currentMandiPrice,
+        'notes': 'Buyer posted demand for $qty kg of $_selectedCrop at ₹$price/kg.',
         'items': [
           {
             'productId': 'demand_${DateTime.now().millisecondsSinceEpoch}',
@@ -141,7 +193,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Broadcast real-time notification to all farmers
+      // 2. Broadcast notification
       await FirebaseFirestore.instance.collection('notifications').add({
         'recipientId': 'all_farmers',
         'title': '📢 New Buyer Demand: ${qty.toStringAsFixed(0)} kg $_selectedCrop',
@@ -188,8 +240,24 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final double enteredPrice = double.tryParse(_priceController.text) ?? 0.0;
+    final double mandi = _currentMandiPrice;
+
+    String priceStatusText;
+    Color priceStatusColor;
+    if (enteredPrice <= 0) {
+      priceStatusText = 'Mandi Benchmark: ₹${mandi.toStringAsFixed(0)} / kg';
+      priceStatusColor = Colors.white54;
+    } else if (enteredPrice >= mandi * 0.95) {
+      priceStatusText = 'Fair Price • High Farmer Match Probability (95%)';
+      priceStatusColor = green;
+    } else {
+      priceStatusText = 'Below Mandi Average (₹${mandi.toStringAsFixed(0)}/kg) • Slower Acceptance';
+      priceStatusColor = orange;
+    }
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.90,
+      height: MediaQuery.of(context).size.height * 0.92,
       decoration: const BoxDecoration(
         color: Color(0xFF0C120D),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -216,7 +284,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Title & Step 1 Tag
+              // Title Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -229,7 +297,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                       ),
                       const SizedBox(height: 2),
                       const Text(
-                        'Step 1 • Direct Farm-to-Buyer Workflow',
+                        'Direct Farm-to-Buyer Workflow',
                         style: TextStyle(color: green, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -247,7 +315,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
               ),
               const SizedBox(height: 18),
 
-              // Crop Variety Selector
+              // Crop Selector
               const Text('Select Crop Variety', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Container(
@@ -294,6 +362,8 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                           keyboardType: TextInputType.number,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           decoration: InputDecoration(
+                            hintText: 'e.g. 500',
+                            hintStyle: const TextStyle(color: Colors.white30, fontSize: 12),
                             suffixText: 'kg',
                             suffixStyle: const TextStyle(color: green, fontWeight: FontWeight.bold),
                             filled: true,
@@ -302,7 +372,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
                           ),
                           onChanged: (_) => setState(() {}),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Enter quantity' : null,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter quantity' : null,
                         ),
                       ],
                     ),
@@ -319,6 +389,8 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                           keyboardType: TextInputType.number,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           decoration: InputDecoration(
+                            hintText: 'e.g. ${mandi.round()}',
+                            hintStyle: const TextStyle(color: Colors.white30, fontSize: 12),
                             prefixText: '₹ ',
                             prefixStyle: const TextStyle(color: green, fontWeight: FontWeight.bold),
                             filled: true,
@@ -327,9 +399,48 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
                           ),
                           onChanged: (_) => setState(() {}),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Enter price' : null,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter price' : null,
                         ),
                       ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Mandi Benchmark & Fair Price Indicator (Feature C1)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.insights_rounded, color: priceStatusColor, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            priceStatusText,
+                            style: TextStyle(color: priceStatusColor, fontSize: 10, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: _applyMandiBenchmark,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: green.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: green.withValues(alpha: 0.4)),
+                      ),
+                      child: Text(
+                        'Apply ₹${mandi.toStringAsFixed(0)}',
+                        style: const TextStyle(color: green, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
@@ -362,7 +473,9 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                       if (val != null) {
                         setState(() {
                           _selectedDestination = val;
-                          _addressController.text = '$val, Tamil Nadu, India';
+                          if (_addressController.text.isEmpty) {
+                            _addressController.text = '$val, Tamil Nadu, India';
+                          }
                         });
                       }
                     },
@@ -379,17 +492,20 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 maxLines: 2,
                 decoration: InputDecoration(
+                  hintText: 'Enter your business address or warehouse location',
+                  hintStyle: const TextStyle(color: Colors.white30, fontSize: 12),
                   filled: true,
                   fillColor: card,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: border)),
                 ),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter delivery address' : null,
               ),
               const SizedBox(height: 18),
 
-              // STEP 3 DECISION FORK: Branch A vs Branch B
+              // Delivery Method Toggle: Branch A vs Branch B
               Text(
-                'Step 3 Decision Fork • Delivery Method',
+                'Delivery Method Selection',
                 style: GoogleFonts.outfit(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -421,7 +537,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                             const SizedBox(height: 6),
                             const Text('KisanAI Delivery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                             const SizedBox(height: 2),
-                            const Text('Auto-assigned Truck / Reefer', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                            const Text('Reefer / Transport Partner', style: TextStyle(color: Colors.white54, fontSize: 10)),
                             const SizedBox(height: 4),
                             Text('Fee: ₹550', style: TextStyle(color: !_isBranchA ? green : Colors.white60, fontWeight: FontWeight.bold, fontSize: 11)),
                           ],
@@ -456,7 +572,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                             const SizedBox(height: 6),
                             const Text('Direct Farm Pickup', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                             const SizedBox(height: 2),
-                            const Text('Collect produce at farm gate', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                            const Text('Collect at farm gate', style: TextStyle(color: Colors.white54, fontSize: 10)),
                             const SizedBox(height: 4),
                             const Text('Fee: ₹0 (Free)', style: TextStyle(color: green, fontWeight: FontWeight.bold, fontSize: 11)),
                           ],
@@ -485,7 +601,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
-                            Text('Tata Ace Reefer Cold-Chain', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                            Text('Reefer Cold-Chain Protection', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                             Text('Active 4°C refrigeration for perishables', style: TextStyle(color: Colors.white54, fontSize: 10)),
                           ],
                         ),
@@ -523,7 +639,7 @@ class _CreateDemandSheetState extends State<CreateDemandSheet> {
                       ],
                     ),
                     Text(
-                      _isBranchA ? 'Produce Only (₹0 Delivery)' : 'Includes Reefer Delivery Fee',
+                      _isBranchA ? 'Produce Only (₹0 Delivery)' : 'Includes Delivery Fee',
                       style: const TextStyle(color: Colors.white54, fontSize: 10),
                     ),
                   ],

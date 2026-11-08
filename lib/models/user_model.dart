@@ -20,6 +20,20 @@ class UserModel {
 
   final Timestamp createdAt;
 
+  // Verification & Trust
+  final bool isVerified;
+  final String kycStatus; // 'not_submitted', 'pending', 'approved', 'rejected'
+  final Map<String, dynamic>? kycDocs;
+  final String? rejectionReason;
+  final double trustScore;
+  final double rating;
+
+  // Wallet & Payments
+  final double walletBalance;
+  final String? upiId;
+  final String? bankAccount;
+  final String? bankIfsc;
+
   UserModel({
     required this.uid,
     required this.role,
@@ -40,6 +54,18 @@ class UserModel {
     required this.farmSize,
 
     required this.createdAt,
+
+    this.isVerified = false,
+    this.kycStatus = 'not_submitted',
+    this.kycDocs,
+    this.rejectionReason,
+    this.trustScore = 5.0,
+    this.rating = 5.0,
+
+    this.walletBalance = 0.0,
+    this.upiId,
+    this.bankAccount,
+    this.bankIfsc,
   });
 
   Map<String, dynamic> toMap() {
@@ -63,6 +89,18 @@ class UserModel {
       'farmSize': farmSize,
 
       'createdAt': createdAt,
+
+      'isVerified': isVerified,
+      'kycStatus': kycStatus,
+      'kycDocs': kycDocs,
+      'rejectionReason': rejectionReason,
+      'trustScore': trustScore,
+      'rating': rating,
+
+      'walletBalance': walletBalance,
+      'upiId': upiId,
+      'bankAccount': bankAccount,
+      'bankIfsc': bankIfsc,
     };
   }
 
@@ -87,6 +125,18 @@ class UserModel {
       farmSize: map['farmSize'] ?? '',
 
       createdAt: map['createdAt'] ?? Timestamp.now(),
+
+      isVerified: map['isVerified'] ?? false,
+      kycStatus: map['kycStatus'] ?? 'not_submitted',
+      kycDocs: map['kycDocs'] as Map<String, dynamic>?,
+      rejectionReason: map['rejectionReason'],
+      trustScore: (map['trustScore'] as num?)?.toDouble() ?? 5.0,
+      rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
+
+      walletBalance: (map['walletBalance'] as num?)?.toDouble() ?? 0.0,
+      upiId: map['upiId'],
+      bankAccount: map['bankAccount'],
+      bankIfsc: map['bankIfsc'],
     );
   }
 }

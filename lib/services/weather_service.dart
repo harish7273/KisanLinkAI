@@ -6,25 +6,26 @@ import '../constants/api_constants.dart';
 import '../models/weather_model.dart';
 
 class WeatherService {
-  /// Fetches live weather using Open-Meteo free global API (no API key required).
-  /// Falls back to OpenWeather or realistic defaults to guarantee the UI never shows '--°'.
-  static Future<WeatherModel> getCurrentWeather(
-      double lat, double lon) async {
-    // 1. Try Open-Meteo (100% free, highly accurate for India, no key needed)
+  /// Fetches live weather and daily agri-forecast using Open-Meteo free global API (no API key required).
+  /// Falls back to OpenWeather or realistic Coimbatore defaults if network fails.
+  static Future<WeatherModel> getCurrentWeather(double lat, double lon) async {
+    // 1. Try Open-Meteo with full current + hourly + 7-day daily forecast
     try {
       final meteoUrl = Uri.parse(
         "https://api.open-meteo.com/v1/forecast"
         "?latitude=$lat"
         "&longitude=$lon"
         "&current_weather=true"
-        "&hourly=relativehumidity_2m",
+        "&hourly=relativehumidity_2m"
+        "&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+        "&timezone=auto",
       );
 
       final meteoResponse = await http.get(meteoUrl).timeout(const Duration(seconds: 6));
 
       if (meteoResponse.statusCode == 200) {
         final data = jsonDecode(meteoResponse.body) as Map<String, dynamic>;
-        debugPrint('☀️ [WeatherService] Open-Meteo response parsed successfully.');
+        debugPrint('☀️ [WeatherService] Open-Meteo parsed successfully with 7-day forecast.');
         return WeatherModel.fromJson(data);
       }
     } catch (e) {
@@ -50,7 +51,7 @@ class WeatherService {
       debugPrint('⚠️ [WeatherService] OpenWeather secondary failed: $e');
     }
 
-    // 3. Fallback to realistic live weather
+    // 3. Realistic live weather fallback
     debugPrint('ℹ️ [WeatherService] Using default Coimbatore weather fallback.');
     return WeatherModel.defaultCoimbatore();
   }

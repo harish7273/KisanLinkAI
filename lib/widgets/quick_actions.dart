@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import '../screens/ai_chat_screen.dart';
+import '../screens/buyer_market_screen.dart';
+import '../screens/crop_disease_screen.dart';
 import '../screens/kisan_voice_screen.dart';
 import '../screens/quality_scanner_screen.dart';
 import '../screens/kisan_pool_screen.dart';
 import '../screens/offline_sync_screen.dart';
+import '../screens/wishlist_screen.dart';
+import '../services/language_service.dart';
 
 class QuickActions extends StatelessWidget {
   final String role;
@@ -21,16 +24,16 @@ class QuickActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Quick Actions",
-          style: TextStyle(
+        Text(
+          LanguageService.tr('quick_actions', defaultText: "Quick Actions"),
+          style: const TextStyle(
             color: Colors.white,
-            fontSize: 28,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
 
-        const SizedBox(height: 5),
+        const SizedBox(height: 12),
 
         GridView.builder(
           shrinkWrap: true,
@@ -39,29 +42,29 @@ class QuickActions extends StatelessWidget {
           gridDelegate:
               const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.12,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: 1.15,
           ),
           itemBuilder: (context, index) {
             final item = actions[index];
 
             return InkWell(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20),
               onTap: item.onTap,
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF181818),
-                  borderRadius: BorderRadius.circular(22),
+                  color: const Color(0xFF141A15),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF00E676).withOpacity(.25),
+                    color: const Color(0xFF00E676).withValues(alpha: .22),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+                      color: Colors.black.withValues(alpha: .3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -69,41 +72,41 @@ class QuickActions extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 58,
-                      height: 58,
-                      decoration: const BoxDecoration(
-                        color: Color(0x2200E676),
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E676).withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         item.icon,
                         color: const Color(0xFF00E676),
-                        size: 30,
+                        size: 24,
                       ),
                     ),
 
                     const Spacer(),
 
                     Text(
-                      item.title,
-                      maxLines: 2,
+                      LanguageService.tr(item.title, defaultText: item.title),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
 
                     Text(
-                      item.subtitle,
+                      LanguageService.tr(item.subtitle, defaultText: item.subtitle),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white54,
-                        fontSize: 13,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -120,14 +123,14 @@ class QuickActions extends StatelessWidget {
 
   static List<_ActionItem> _farmerActions(BuildContext context) => [
         _ActionItem(
-          icon: Icons.record_voice_over_rounded,
-          title: "Voice Assistant",
-          subtitle: "Zero-typing list",
+          icon: Icons.health_and_safety_rounded,
+          title: "Crop Doctor",
+          subtitle: "Leaf disease diagnosis",
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const KisanVoiceScreen(),
+                builder: (_) => const CropDiseaseScreen(),
               ),
             );
           },
@@ -146,9 +149,22 @@ class QuickActions extends StatelessWidget {
           },
         ),
         _ActionItem(
+          icon: Icons.record_voice_over_rounded,
+          title: "Voice Assistant",
+          subtitle: "Zero-typing listing",
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const KisanVoiceScreen(),
+              ),
+            );
+          },
+        ),
+        _ActionItem(
           icon: Icons.local_shipping_rounded,
           title: "KisanPool",
-          subtitle: "Shared milk-run",
+          subtitle: "Shared transport",
           onTap: () {
             Navigator.push(
               context,
@@ -177,13 +193,27 @@ class QuickActions extends StatelessWidget {
 
   static List<_ActionItem> _buyerActions(BuildContext context) => [
         _ActionItem(
-          icon: Icons.shopping_cart_rounded,
-          title: "Buy Crops",
-          subtitle: "Fresh produce",
+          icon: Icons.shopping_basket_rounded,
+          title: "Market Feed",
+          subtitle: "Fresh verified lots",
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Coming Soon 🚀"),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const BuyerMarketScreen(),
+              ),
+            );
+          },
+        ),
+        _ActionItem(
+          icon: Icons.qr_code_scanner_rounded,
+          title: "Quality Verify",
+          subtitle: "Scan lot certificate",
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const QualityScannerScreen(),
               ),
             );
           },
@@ -191,35 +221,25 @@ class QuickActions extends StatelessWidget {
         _ActionItem(
           icon: Icons.favorite_rounded,
           title: "Wishlist",
-          subtitle: "Saved items",
+          subtitle: "Saved farmer lots",
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Coming Soon 🚀"),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const WishlistScreen(),
               ),
             );
           },
         ),
         _ActionItem(
-          icon: Icons.local_shipping_rounded,
-          title: "Orders",
-          subtitle: "Track orders",
+          icon: Icons.cloud_sync_rounded,
+          title: "Offline Sync",
+          subtitle: "Order cache",
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Coming Soon 🚀"),
-              ),
-            );
-          },
-        ),
-        _ActionItem(
-          icon: Icons.bar_chart_rounded,
-          title: "Price Trends",
-          subtitle: "Market data",
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Coming Soon 🚀"),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const OfflineSyncScreen(),
               ),
             );
           },
@@ -233,7 +253,7 @@ class _ActionItem {
   final String subtitle;
   final VoidCallback onTap;
 
-  const _ActionItem({
+  _ActionItem({
     required this.icon,
     required this.title,
     required this.subtitle,

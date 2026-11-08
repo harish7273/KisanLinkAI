@@ -17,6 +17,7 @@ class LanguageService {
 
   static final ValueNotifier<String> currentLocaleNotifier = ValueNotifier<String>('en');
   static String tr(String key, {String? defaultText}) => instance.translate(key, defaultText: defaultText);
+  static String get currentLanguage => currentLocaleNotifier.value;
 
   String get currentCode => currentLocaleNotifier.value;
 
@@ -44,6 +45,7 @@ class LanguageService {
   }
 
   Future<void> setLanguage(String code) async {
+    _lookupCache.clear();
     currentLocaleNotifier.value = code;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -79,6 +81,15 @@ class LanguageService {
 
     final dict = _translations[code] ?? _translations['en']!;
 
+    // 0. Dynamic Produce, Status, Vehicle & Quality Dictionary
+    if (code != 'en' && _produceAndStatusDict.containsKey(key)) {
+      final res = _produceAndStatusDict[key]![code];
+      if (res != null) {
+        _lookupCache[cacheKey] = res;
+        return res;
+      }
+    }
+
     // 1. Direct key match in current language
     if (dict.containsKey(key)) {
       final res = dict[key]!;
@@ -110,6 +121,82 @@ class LanguageService {
     _lookupCache[cacheKey] = fallback;
     return fallback;
   }
+
+  static const Map<String, Map<String, String>> _produceAndStatusDict = {
+    // 35+ Produce & Harvest Crops
+    'Beans': {'ta': 'பீன்ஸ்', 'hi': 'बीन्स'},
+    'Ladies Finger': {'ta': 'வெண்டைக்காய்', 'hi': 'भिंडी'},
+    'Okra': {'ta': 'வெண்டைக்காய்', 'hi': 'भिंडी'},
+    'Beetroot': {'ta': 'பீட்ரூட்', 'hi': 'चुकंदर'},
+    'Radish': {'ta': 'முள்ளங்கி', 'hi': 'मूली'},
+    'Cucumber': {'ta': 'வெள்ளரிக்காய்', 'hi': 'खीरा'},
+    'Sweet Corn': {'ta': 'மக்காச்சோளம்', 'hi': 'मीठा मक्का'},
+    'Papaya': {'ta': 'பப்பாளி', 'hi': 'पपीता'},
+    'Guava': {'ta': 'கொய்யாப்பழம்', 'hi': 'अमरूद'},
+    'Pomegranate': {'ta': 'மாதுளை', 'hi': 'अनार'},
+    'Watermelon': {'ta': 'தர்பூசணி', 'hi': 'तरबूज'},
+    'Lemon': {'ta': 'எலுமிச்சை', 'hi': 'नींबू'},
+    'Turmeric': {'ta': 'மஞ்சள்', 'hi': 'हल्दी'},
+    'Garlic': {'ta': 'பூண்டு', 'hi': 'लहसुन'},
+    'Ginger': {'ta': 'இஞ்சி', 'hi': 'अदरक'},
+    'Drumstick': {'ta': 'முருங்கைக்காய்', 'hi': 'सहजन'},
+    'Capsicum': {'ta': 'குடைமிளகாய்', 'hi': 'शिमला मिर्च'},
+    'Cauliflower': {'ta': 'காலிஃபிளவர்', 'hi': 'फूलगोभी'},
+    'Cabbage': {'ta': 'முட்டைக்கோஸ்', 'hi': 'पत्तागोभी'},
+    'Green Chilli': {'ta': 'பச்சை மிளகாய்', 'hi': 'हरी मिर्च'},
+    'Brinjal': {'ta': 'கத்தரிக்காய்', 'hi': 'बैंगन'},
+    'Potato': {'ta': 'உருளைக்கிழங்கு', 'hi': 'आलू'},
+    'Tomato': {'ta': 'தக்காளி', 'hi': 'टमाटर'},
+    'Onion': {'ta': 'வெங்காயம்', 'hi': 'प्याज'},
+    'Banana': {'ta': 'வாழைப்பழம்', 'hi': 'केला'},
+    'Mango': {'ta': 'மாம்பழம்', 'hi': 'आम'},
+    'Coconut': {'ta': 'தேங்காய்', 'hi': 'नारियल'},
+    'Rice': {'ta': 'அரிசி', 'hi': 'चावल'},
+    'Paddy': {'ta': 'நெல்', 'hi': 'धान'},
+    'Wheat': {'ta': 'கோதுமை', 'hi': 'गेहूं'},
+    'Cotton': {'ta': 'பருத்தி', 'hi': 'कपास'},
+    'Sugarcane': {'ta': 'கரும்பு', 'hi': 'गन्ना'},
+    'Groundnut': {'ta': 'நிலக்கடலை', 'hi': 'मूंगफली'},
+
+    // Order Statuses & Milestones
+    'Pending': {'ta': 'நிலுவையில்', 'hi': 'लंबित'},
+    'Accepted': {'ta': 'ஏற்றுக்கொள்ளப்பட்டது', 'hi': 'स्वीकृत'},
+    'In Transit': {'ta': 'வழியில் உள்ளது', 'hi': 'रास्ते में'},
+    'Arrived': {'ta': 'வந்து சேர்ந்தது', 'hi': 'पहुंच गया'},
+    'Delivered': {'ta': 'வழங்கப்பட்டது', 'hi': 'सफलतापूर्वक वितरित'},
+    'Cancelled': {'ta': 'ரத்து செய்யப்பட்டது', 'hi': 'रद्द किया गया'},
+    'Escrow Secured': {'ta': 'பணம் பாதுகாப்பாக உள்ளது', 'hi': 'एस्क्रो सुरक्षित'},
+    'Released': {'ta': 'விடுவிக்கப்பட்டது', 'hi': 'भुगतान जारी'},
+    'Ready to Ship': {'ta': 'அனுப்ப தயார்', 'hi': 'भेजने के लिए तैयार'},
+    'Driver Assigned': {'ta': 'ஓட்டுநர் நியமிக்கப்பட்டார்', 'hi': 'ड्राइवर नियुक्त'},
+
+    // Vehicle Types
+    'Mini Truck': {'ta': 'மினி டிரக்', 'hi': 'मिनी ट्रक'},
+    'Tata Ace': {'ta': 'டாடா ஏஸ்', 'hi': 'टाटा ऐस'},
+    'Tata Ace Reefer': {'ta': 'டாடா ஏஸ் குளிர்சாதன வாகனம்', 'hi': 'टाटा ऐस रीफर'},
+    'Pickup 4x4': {'ta': 'பிக்கப் 4x4', 'hi': 'पिकअप 4x4'},
+    'E-Loader': {'ta': 'இ-லோடர்', 'hi': 'ई-लोडर'},
+    'Tractor': {'ta': 'டிராக்டர்', 'hi': 'ट्रैक्टर'},
+    'Reefer Van': {'ta': 'குளிர்சாதன வேன்', 'hi': 'रीफर वैन'},
+
+    // Units
+    'Kg': {'ta': 'கிலோ', 'hi': 'किग्रा'},
+    'Ton': {'ta': 'டன்', 'hi': 'टन'},
+    'Quintal': {'ta': 'குவிண்டால்', 'hi': 'क्विंटल'},
+    'Bunch': {'ta': 'கொத்து', 'hi': 'गुच्छा'},
+    'Piece': {'ta': 'எண்ணிக்கை', 'hi': 'पीस'},
+    'Crate': {'ta': 'பெட்டி', 'hi': 'क्रेट'},
+    'Bag': {'ta': 'மூட்டை', 'hi': 'बोरी'},
+
+    // Quality Grades & Certifications
+    'Grade A': {'ta': 'கிரேடு A (உயர்தரம்)', 'hi': 'ग्रेड ए (प्रीमियम)'},
+    'Grade B': {'ta': 'கிரேடு B (வணிக தரம்)', 'hi': 'ग्रेड बी (व्यावसायिक)'},
+    'Grade C': {'ta': 'கிரேடு C (பதப்படுத்தும் தரம்)', 'hi': 'ग्रेड सी (प्रसंस्करण)'},
+    'Reject': {'ta': 'நிராகரிக்கப்பட்டது', 'hi': 'अस्वीकृत'},
+    'Organic': {'ta': 'இயற்கை வழி', 'hi': 'जैविक'},
+    'Chemical Free': {'ta': 'ரசாயனமற்றது', 'hi': 'रसायन मुक्त'},
+    'AGMARK Certified': {'ta': 'அக்மார்க் சான்றளிக்கப்பட்டது', 'hi': 'एगमार्क प्रमाणित'},
+  };
 
   static final Map<String, Map<String, String>> _translations = {
     'en': {

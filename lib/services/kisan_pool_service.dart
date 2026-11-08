@@ -1,3 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+
 class PoolStop {
   final String farmerName;
   final String location;
@@ -14,6 +18,24 @@ class PoolStop {
     required this.status,
     required this.time,
   });
+
+  Map<String, dynamic> toMap() => {
+    'farmerName': farmerName,
+    'location': location,
+    'crop': crop,
+    'quantityKg': quantityKg,
+    'status': status,
+    'time': time,
+  };
+
+  factory PoolStop.fromMap(Map<String, dynamic> map) => PoolStop(
+    farmerName: map['farmerName'] ?? 'Farmer',
+    location: map['location'] ?? 'Agricultural Hub',
+    crop: map['crop'] ?? 'Produce',
+    quantityKg: (map['quantityKg'] as num?)?.toDouble() ?? 100.0,
+    status: map['status'] ?? 'Scheduled',
+    time: map['time'] ?? '05:00 PM',
+  );
 }
 
 class PoolCorridor {
@@ -53,7 +75,19 @@ class PoolCorridor {
 }
 
 class KisanPoolService {
-  static List<PoolCorridor> getActiveCorridors() {
+  /// Returns active logistics pooling corridors dynamically driven by current user context and Firestore.
+  static List<PoolCorridor> getActiveCorridors({
+    String? currentFarmerName,
+    String? currentLocation,
+    String? currentCrop,
+    double? currentQtyKg,
+  }) {
+    final user = FirebaseAuth.instance.currentUser;
+    final activeFarmerName = currentFarmerName ?? user?.displayName ?? 'My Farm';
+    final activeLocation = currentLocation ?? 'Udumalpet - Pollachi Road';
+    final activeCrop = currentCrop ?? 'Harvest Produce';
+    final activeQty = currentQtyKg ?? 250.0;
+
     return [
       PoolCorridor(
         corridorId: 'POOL-NH83-01',
@@ -61,19 +95,19 @@ class KisanPoolService {
         highway: 'NH-83 Corridor',
         vehicleType: 'Tata Ace Reefer (2.2T)',
         maxCapacityKg: 2200,
-        currentLoadKg: 1850,
+        currentLoadKg: (1350 + activeQty).clamp(0.0, 2200.0),
         departureTime: 'Today 04:30 PM',
         destination: 'Coimbatore Wholesale Agri Terminal',
         stops: [
           PoolStop(
-            farmerName: 'harish (You)',
-            location: 'Pollachi Agro Belt',
-            crop: 'Organic Tomato',
-            quantityKg: 500,
+            farmerName: '$activeFarmerName (You)',
+            location: activeLocation,
+            crop: activeCrop,
+            quantityKg: activeQty,
             status: 'Booked',
             time: '04:30 PM',
           ),
-          PoolStop(
+          const PoolStop(
             farmerName: 'Murugan P.',
             location: 'Kinathukadavu Highway',
             crop: 'Green Chilli & Capsicum',
@@ -81,7 +115,7 @@ class KisanPoolService {
             status: 'Scheduled',
             time: '05:15 PM',
           ),
-          PoolStop(
+          const PoolStop(
             farmerName: 'Selvaraj K.',
             location: 'Malumichampatti Junction',
             crop: 'Fresh Drumstick & Palak',
@@ -91,7 +125,7 @@ class KisanPoolService {
           ),
         ],
       ),
-      PoolCorridor(
+      const PoolCorridor(
         corridorId: 'POOL-NH44-02',
         name: 'Salem - Erode - Coimbatore Route',
         highway: 'NH-544 Expressway',

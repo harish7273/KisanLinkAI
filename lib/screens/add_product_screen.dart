@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'ai_pricing_screen.dart';
@@ -75,9 +77,7 @@ class _AddProductScreenState
   // ============================================================
 
   final Map<String, String> cropCategory = {
-    "Rice": "Grains",
-    "Wheat": "Grains",
-
+    // Vegetables
     "Tomato": "Vegetable",
     "Potato": "Vegetable",
     "Onion": "Vegetable",
@@ -87,17 +87,35 @@ class _AddProductScreenState
     "Chilli": "Vegetable",
     "Cabbage": "Vegetable",
     "Cauliflower": "Vegetable",
+    "Capsicum": "Vegetable",
+    "Drumstick": "Vegetable",
+    "Ladies Finger": "Vegetable",
+    "Ginger": "Vegetable",
+    "Garlic": "Vegetable",
+    "Beetroot": "Vegetable",
+    "Radish": "Vegetable",
+    "Cucumber": "Vegetable",
+    "Sweet Corn": "Vegetable",
 
+    // Fruits
     "Banana": "Fruit",
     "Mango": "Fruit",
     "Apple": "Fruit",
     "Orange": "Fruit",
     "Coconut": "Fruit",
+    "Papaya": "Fruit",
+    "Guava": "Fruit",
+    "Pomegranate": "Fruit",
+    "Watermelon": "Fruit",
+    "Lemon": "Fruit",
 
+    // Grains & Cash Crops
+    "Rice": "Grains",
+    "Wheat": "Grains",
     "Cotton": "Cash Crop",
     "Sugarcane": "Cash Crop",
-
     "Groundnut": "Oil Seed",
+    "Turmeric": "Cash Crop",
   };
 
   final List<String> units = [
@@ -133,7 +151,25 @@ class _AddProductScreenState
     if (widget.initialLocation != null && widget.initialLocation!.isNotEmpty) {
       locationController.text = widget.initialLocation!;
     } else {
-      locationController.text = "Coimbatore, Tamil Nadu";
+      // Input-driven: strictly pre-fill only if authenticated user has saved profile location
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get()
+            .then((doc) {
+          if (doc.exists && mounted && locationController.text.isEmpty) {
+            final data = doc.data();
+            final loc = data?['location'] ?? data?['district'] ?? data?['village'] ?? '';
+            if (loc.toString().trim().isNotEmpty) {
+              setState(() {
+                locationController.text = loc.toString().trim();
+              });
+            }
+          }
+        }).catchError((_) {});
+      }
     }
 
     if (widget.initialPrice != null && widget.initialPrice! > 0) {

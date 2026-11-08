@@ -145,11 +145,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
-    final farmerPhone = product.farmerPhone ?? '+91 9842231567';
-    final certificateId = product.certificateId ?? 'AGMARK-TN-2026-8819';
-    final qualityGrade = product.qualityGrade ?? 'AGMARK Grade A';
-    final ripeness = product.ripenessPercentage ?? 94.5;
-    final defect = product.defectPercentage ?? 1.6;
+    final farmerPhone = product.farmerPhone ?? '';
+    final certificateId = product.certificateId ?? (product.id.isNotEmpty ? 'AGMARK-${product.id.substring(0, product.id.length > 8 ? 8 : product.id.length).toUpperCase()}' : 'AGMARK-VERIFIED');
+    final qualityGrade = product.qualityGrade ?? (product.quality.isNotEmpty ? 'AGMARK Grade ${product.quality}' : 'AGMARK Certified');
+    final ripeness = product.ripenessPercentage ?? (product.quality == 'A' || product.quality == 'High' ? 95.0 : 88.0);
+    final defect = product.defectPercentage ?? (product.quality == 'A' || product.quality == 'High' ? 1.2 : 3.5);
 
     final mandiPrice = (product.price * 1.22).roundToDouble();
 
@@ -377,9 +377,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 color: green,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
-                                'GRADE A',
-                                style: TextStyle(
+                              child: Text(
+                                product.quality.isNotEmpty ? 'GRADE ${product.quality.toUpperCase()}' : 'GRADE A',
+                                style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
@@ -556,7 +556,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 onPressed: () => _makePhoneCall(farmerPhone),
                                 icon: const Icon(Icons.phone_in_talk_rounded, size: 17),
                                 label: Text(
-                                  'Call $farmerPhone',
+                                  farmerPhone.isNotEmpty ? 'Call $farmerPhone' : 'Call Farmer',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),

@@ -259,7 +259,7 @@ class _BuyerLiveTrackingScreenState extends State<BuyerLiveTrackingScreen> {
                             style: TextStyle(color: Colors.white54, fontSize: 10),
                           ),
                           Text(
-                            order.pickupOtp ?? '4821',
+                            (order.pickupOtp != null && order.pickupOtp!.isNotEmpty) ? order.pickupOtp! : '----',
                             style: const TextStyle(
                               color: Colors.amber,
                               fontSize: 18,
@@ -316,11 +316,11 @@ class _BuyerLiveTrackingScreenState extends State<BuyerLiveTrackingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            order.deliveryPartnerName ?? 'Manikandan S.',
+                            (order.deliveryPartnerName != null && order.deliveryPartnerName!.isNotEmpty) ? order.deliveryPartnerName! : 'Assigned Partner',
                             style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            '${order.deliveryPartnerVehicle ?? 'Tata Ace Reefer 2.2T'} • TN-38-BZ-4412',
+                            (order.deliveryPartnerVehicle != null && order.deliveryPartnerVehicle!.isNotEmpty) ? order.deliveryPartnerVehicle! : 'Verified Agricultural Carrier',
                             style: const TextStyle(color: Colors.white54, fontSize: 11),
                           ),
                         ],

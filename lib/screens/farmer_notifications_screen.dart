@@ -137,7 +137,10 @@ class _FarmerNotificationsScreenState
 
       case 'Updates':
         return type == 'update' ||
-            type == 'system';
+            type == 'system' ||
+            type == 'weather_alert' ||
+            type == 'broadcast' ||
+            type == 'crop_advice';
 
       default:
         return true;
@@ -169,7 +172,14 @@ class _FarmerNotificationsScreenState
 
       case 'update':
       case 'system':
+      case 'broadcast':
         return Icons.campaign_rounded;
+
+      case 'weather_alert':
+        return Icons.thunderstorm_rounded;
+
+      case 'crop_advice':
+        return Icons.eco_rounded;
 
       case 'order_cancelled':
         return Icons.cancel_rounded;

@@ -858,4 +858,19 @@ class DataSeedService {
 
     debugPrint('✅ [DataSeedService] Comprehensive delivery orders seeded successfully.');
   }
+
+  /// Clears all records created by seed scripts (marked with is_seed: true)
+  /// Protects user-created records from being deleted.
+  static Future<void> clearAllSeedData() async {
+    final collections = ['products', 'orders', 'auctions', 'mandi_prices', 'users'];
+    for (final col in collections) {
+      final snap = await _firestore.collection(col).where('is_seed', isEqualTo: true).limit(500).get();
+      final batch = _firestore.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      debugPrint('[DataSeedService] Cleared ${snap.docs.length} seed records from $col');
+    }
+  }
 }

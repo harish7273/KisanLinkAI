@@ -214,6 +214,56 @@ class _DeliveryNavigateFarmerScreenState extends State<DeliveryNavigateFarmerScr
               ),
             ),
 
+            // Fuel & Trip Cost Estimator (Feature D4)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141A14),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.local_gas_station_rounded, color: yellow, size: 18),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Estimated Fuel / Cost', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                            Text(
+                              '₹${(((order.distanceKm ?? 14.0) * 7.5)).toStringAsFixed(0)} (${(order.distanceKm ?? 14.0).toStringAsFixed(1)} km)',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.timer_rounded, color: Colors.greenAccent, size: 18),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text('Traffic ETA', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                            Text(
+                              '${((order.distanceKm ?? 14.0) / 0.55).round()} mins',
+                              style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // Start Pickup Action Button
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
