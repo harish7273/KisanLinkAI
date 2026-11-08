@@ -714,6 +714,17 @@ html_content = """<!DOCTYPE html>
           </div>
         </div>
 
+        <!-- Center: Demo Mode Indicator & Reset Action -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="demoModeBadge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 9999px; font-size: 11px; font-weight: 700; color: #92400E; letter-spacing: 0.02em;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #D97706;"></span>
+            Demo mode: sample data
+          </div>
+          <button class="btn btn-secondary" onclick="window.kisanDataStore && window.kisanDataStore.resetDemoData ? window.kisanDataStore.resetDemoData() : alert('Demo data reset.')" style="padding: 4px 10px; font-size: 11px; font-weight: 600; background: #FFFFFF; border: 1px solid var(--border-hairline); border-radius: 6px; cursor: pointer; color: #374151;">
+            Reset demo data
+          </button>
+        </div>
+
         <!-- Right: Actions & Localization (Screenshot B) -->
         <div style="display: flex; align-items: center; gap: 12px;">
           <!-- Language Selector -->
