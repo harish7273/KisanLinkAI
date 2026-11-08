@@ -93,3 +93,5 @@ key.properties
 *.jks
 *.keystore
 
+
+*.apk
