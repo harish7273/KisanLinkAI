@@ -736,6 +736,97 @@ class KisanDataStore {
       localStorage.setItem('kisanai_audit_logs', JSON.stringify(this.auditLogs.slice(0, 100)));
     } catch (_) {}
   }
+
+  // ============================================================
+  // CLOUD BACKEND REST & REALTIME INTEGRATION (PHASE 1)
+  // ============================================================
+
+  getApiBaseUrl() {
+    if (window.KISAN_API_BASE_URL) return window.KISAN_API_BASE_URL;
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://127.0.0.1:8000';
+    }
+    return 'https://kisanlinkai-backend.onrender.com';
+  }
+
+  async syncWithBackend() {
+    const base = this.getApiBaseUrl();
+    try {
+      const res = await fetch(${base}/health, { signal: AbortSignal.timeout(2000) });
+      if (!res.ok) return false;
+      
+      const ordRes = await fetch(${base}/api/v1/orders?limit=100);
+      if (ordRes.ok) {
+        const liveOrders = await ordRes.json();
+        if (liveOrders && liveOrders.length > 0) {
+          this.orders = liveOrders.map(o => ({
+            id: o.order_number || o.id,
+            orderId: o.order_number || o.id,
+            orderStatus: (o.status || '').toLowerCase(),
+            lifecycleStatus: o.status,
+            cropName: o.crop_name,
+            cropTamil: o.crop_name_ta,
+            cropHindi: o.crop_name_hi,
+            quantity: o.quantity,
+            unit: o.unit,
+            unitPrice: o.agreed_price,
+            subtotal: o.produce_total,
+            deliveryFee: o.delivery_fee,
+            totalAmount: o.total_amount,
+            farmerId: o.farmer_id,
+            farmerName: o.farmer_name || 'Farmer',
+            buyerId: o.buyer_id,
+            buyerName: o.buyer_name || 'Buyer',
+            deliveryPartnerId: o.delivery_partner_id,
+            deliveryPartnerName: o.partner_name,
+            pickupLocation: o.pickup_location_name,
+            deliveryAddress: o.drop_location_name,
+            createdAt: o.created_at,
+            updatedAt: o.updated_at
+          }));
+        }
+      }
+
+      const kycRes = await fetch(${base}/api/v1/kyc/queue);
+      if (kycRes.ok) {
+        const liveQueue = await kycRes.json();
+        if (liveQueue && liveQueue.length > 0) {
+          liveQueue.forEach(k => {
+            const found = this.users.find(u => u.uid === k.id || u.phone === k.phone);
+            if (found) {
+              found.kycStatus = k.kyc_status;
+              found.isVerified = k.is_verified === 1;
+            }
+          });
+        }
+      }
+
+      this.isLiveConnected = true;
+      return true;
+    } catch (_) {
+      this.isLiveConnected = false;
+      return false;
+    }
+  }
+
+  initRealtime() {
+    if (this._realtimeInitialized) return;
+    this._realtimeInitialized = true;
+    const base = this.getApiBaseUrl();
+    try {
+      const source = new EventSource(${base}/api/v1/realtime/stream);
+      source.addEventListener('order_updated', () => this.syncWithBackend());
+      source.addEventListener('demand_created', () => this.syncWithBackend());
+      source.addEventListener('kyc_updated', () => this.syncWithBackend());
+      source.addEventListener('ticket_created', () => this.syncWithBackend());
+    } catch (_) {}
+  }
 }
 
 window.kisanDataStore = new KisanDataStore();
+setTimeout(() => {
+  if (window.kisanDataStore) {
+    window.kisanDataStore.syncWithBackend();
+    window.kisanDataStore.initRealtime();
+  }
+}, 500);
