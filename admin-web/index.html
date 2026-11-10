@@ -9,15 +9,15 @@
   <title>KisanAI — Operations &amp; Management HQ</title>
   <link rel="icon" type="image/svg+xml" href="assets/icons/kisan_favicon.svg">
   
-  <link rel="stylesheet" href="css/tokens.css?v=20261107-v3">
-  <link rel="stylesheet" href="css/components.css?v=20261107-v3">
+  <link rel="stylesheet" href="css/tokens.css?v=20261110-v5">
+  <link rel="stylesheet" href="css/components.css?v=20261110-v5">
   
   <!-- Leaflet CSS & JS (Locally Bundled Keyless OpenStreetMap Stack) -->
-  <link rel="stylesheet" href="css/leaflet.css?v=20261107-v3" />
-  <script src="js/leaflet.js?v=20261107-v3"></script>
+  <link rel="stylesheet" href="css/leaflet.css?v=20261110-v5" />
+  <script src="js/leaflet.js?v=20261110-v5"></script>
 
   <!-- Chart.js (Locally Bundled) -->
-  <script src="js/chart.min.js?v=20261107-v3"></script>
+  <script src="js/chart.min.js?v=20261110-v5"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -895,12 +895,12 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- SCRIPTS IN SPECIFIC DEPENDENCY ORDER -->
-  <script src="js/seed-data.js?v=20261107-v3"></script>
-  <script src="js/icons-manifest.js?v=20261107-v3"></script>
-  <script src="js/role-store.js?v=20261107-v3"></script>
-  <script src="js/i18n.js?v=20261107-v3"></script>
-  <script src="js/data-store.js?v=20261107-v3"></script>
-  <script src="js/kisan-map.js?v=20261107-v3"></script>
+  <script src="js/seed-data.js?v=20261110-v5"></script>
+  <script src="js/icons-manifest.js?v=20261110-v5"></script>
+  <script src="js/role-store.js?v=20261110-v5"></script>
+  <script src="js/i18n.js?v=20261110-v5"></script>
+  <script src="js/data-store.js?v=20261110-v5"></script>
+  <script src="js/kisan-map.js?v=20261110-v5"></script>
 
   <script>
     let activeDisputeId = null;
@@ -950,11 +950,13 @@
           token: 'kisan_sec_' + Math.random().toString(36).slice(2, 10)
         };
         localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+        sessionStorage.removeItem('kisanai_explicit_logout');
         return { success: true, session };
       },
 
       logout() {
         localStorage.removeItem(this.SESSION_KEY);
+        sessionStorage.setItem('kisanai_explicit_logout', 'true');
         window.location.hash = '';
         window.location.reload();
       }
@@ -999,12 +1001,18 @@
     window.handleAuthSubmit = handleAuthSubmit;
 
     function bootstrapApp() {
+      // Demo Mode: auto-authenticate default session unless explicitly signed out
       if (!window.kisanAuth.isAuthenticated()) {
-        const shell = document.getElementById('appShell');
-        const auth = document.getElementById('authScreen');
-        if (shell) shell.style.display = 'none';
-        if (auth) auth.style.display = 'flex';
-        return;
+        const explicitLogout = sessionStorage.getItem('kisanai_explicit_logout') === 'true';
+        if (!explicitLogout) {
+          window.kisanAuth.login('directorate@kisanai.in', 'KisanAI@2026');
+        } else {
+          const shell = document.getElementById('appShell');
+          const auth = document.getElementById('authScreen');
+          if (shell) shell.style.display = 'none';
+          if (auth) auth.style.display = 'flex';
+          return;
+        }
       }
       const shell = document.getElementById('appShell');
       const auth = document.getElementById('authScreen');

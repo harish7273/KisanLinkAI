@@ -752,10 +752,10 @@ class KisanDataStore {
   async syncWithBackend() {
     const base = this.getApiBaseUrl();
     try {
-      const res = await fetch(${base}/health, { signal: AbortSignal.timeout(2000) });
+      const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(2000) });
       if (!res.ok) return false;
       
-      const ordRes = await fetch(${base}/api/v1/orders?limit=100);
+      const ordRes = await fetch(`${base}/api/v1/orders?limit=100`);
       if (ordRes.ok) {
         const liveOrders = await ordRes.json();
         if (liveOrders && liveOrders.length > 0) {
@@ -787,7 +787,7 @@ class KisanDataStore {
         }
       }
 
-      const kycRes = await fetch(${base}/api/v1/kyc/queue);
+      const kycRes = await fetch(`${base}/api/v1/kyc/queue`);
       if (kycRes.ok) {
         const liveQueue = await kycRes.json();
         if (liveQueue && liveQueue.length > 0) {
@@ -814,7 +814,7 @@ class KisanDataStore {
     this._realtimeInitialized = true;
     const base = this.getApiBaseUrl();
     try {
-      const source = new EventSource(${base}/api/v1/realtime/stream);
+      const source = new EventSource(`${base}/api/v1/realtime/stream`);
       source.addEventListener('order_updated', () => this.syncWithBackend());
       source.addEventListener('demand_created', () => this.syncWithBackend());
       source.addEventListener('kyc_updated', () => this.syncWithBackend());
