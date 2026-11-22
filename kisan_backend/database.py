@@ -242,7 +242,21 @@ def init_db():
             longitude REAL NOT NULL,
             speed_kmh REAL NOT NULL DEFAULT 35.0,
             heading REAL NOT NULL DEFAULT 0.0,
+            temperature_celsius REAL,
             timestamp TEXT NOT NULL
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS delivery_alerts (
+            id TEXT PRIMARY KEY,
+            delivery_id TEXT NOT NULL REFERENCES deliveries(id) ON DELETE CASCADE,
+            order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+            alert_type TEXT NOT NULL, -- ROUTE_CORRIDOR_BREACH | REEFER_TEMPERATURE_EXCURSION | SOS
+            severity TEXT NOT NULL DEFAULT 'HIGH', -- WARNING | HIGH | CRITICAL
+            message TEXT NOT NULL,
+            telematics_data TEXT,
+            created_at TEXT NOT NULL
         );
         """)
 
@@ -458,6 +472,18 @@ def init_db():
             pass
         try:
             cursor.execute("ALTER TABLE quality_scans ADD COLUMN lot_id TEXT;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE orders ADD COLUMN otp_attempts INTEGER NOT NULL DEFAULT 0;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE orders ADD COLUMN otp_locked INTEGER NOT NULL DEFAULT 0;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE tracking_points ADD COLUMN temperature_celsius REAL;")
         except Exception:
             pass
 
