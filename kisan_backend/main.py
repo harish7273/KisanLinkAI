@@ -19,7 +19,7 @@ from .seed import seed_database
 from .integrity import check_integrity
 from .kyc import router as kyc_router
 from .support import router as support_router
-from .auth import router as auth_router, require_staff_auth
+from .auth import router as auth_router, require_staff_auth, create_jwt
 
 app = FastAPI(
     title="KisanAI Unified Cloud API",
@@ -110,9 +110,20 @@ async def send_otp(req: OtpRequest):
 
 @app.post("/api/v1/auth/otp/verify")
 async def verify_otp(req: OtpVerifyRequest):
-    # Verification rule: in sample mode accept 123456 or 4821
-    if DATA_MODE == "sample" and req.otp not in ["123456", "4821", "1923"]:
-        raise HTTPException(status_code=400, detail="Invalid OTP code.")
+    # Rule 2.3: Mobile registration is restricted to Farmer, Buyer, Delivery Partner (No staff in mobile app)
+    if req.role not in ["farmer", "buyer", "delivery_partner"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role. Mobile app accounts are strictly restricted to farmer, buyer, and delivery_partner."
+        )
+
+    # Rule 2.4: Fixed demo OTP accepted ONLY when DATA_MODE=sample; forbidden in real mode
+    if DATA_MODE == "real":
+        if req.otp in ["123456", "4821", "1923"]:
+            raise HTTPException(status_code=400, detail="Demo OTP codes are strictly disabled in real mode.")
+    else:
+        if req.otp not in ["123456", "4821", "1923"]:
+            raise HTTPException(status_code=400, detail="Invalid OTP code.")
         
     with db_session() as conn:
         cursor = conn.cursor()
@@ -157,7 +168,12 @@ async def verify_otp(req: OtpVerifyRequest):
             cursor.execute("SELECT * FROM users WHERE id = ?;", (uid,))
             user = cursor.fetchone()
 
-        token = f"kisan_jwt_{user['id']}_{uuid.uuid4().hex[:16]}"
+        token = create_jwt({
+            "user_id": user["id"],
+            "role": user["role"],
+            "phone": user["phone"],
+            "name": user["name"]
+        })
         return {
             "token": token,
             "user": dict(user),
