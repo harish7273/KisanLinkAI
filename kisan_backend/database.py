@@ -69,7 +69,10 @@ def init_db():
             village TEXT NOT NULL,
             location_id TEXT REFERENCES locations(id),
             gps_latitude REAL,
-            gps_longitude REAL
+            gps_longitude REAL,
+            bank_account TEXT,
+            bank_ifsc TEXT,
+            upi_id TEXT
         );
         """)
 
@@ -376,7 +379,20 @@ def init_db():
         );
         """)
 
-        # 20. Platform Settings
+        # 20. Ratings & Feedback
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ratings (
+            id TEXT PRIMARY KEY,
+            order_id TEXT REFERENCES orders(id),
+            reviewer_user_id TEXT NOT NULL REFERENCES users(id),
+            target_user_id TEXT NOT NULL REFERENCES users(id),
+            rating REAL NOT NULL DEFAULT 5.0,
+            comment TEXT,
+            created_at TEXT NOT NULL
+        );
+        """)
+
+        # 21. Platform Settings
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS platform_settings (
             id TEXT PRIMARY KEY,
@@ -396,5 +412,19 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_listings_crop ON listings(crop_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);")
+
+        # Safe migrations for columns
+        try:
+            cursor.execute("ALTER TABLE farmer_profiles ADD COLUMN bank_account TEXT;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE farmer_profiles ADD COLUMN bank_ifsc TEXT;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE farmer_profiles ADD COLUMN upi_id TEXT;")
+        except Exception:
+            pass
 
     print("[Database] Schema initialized successfully.")
