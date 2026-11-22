@@ -14,10 +14,10 @@ def seed_database():
         cursor = conn.cursor()
         
         # Clear existing seed data if any
-        cursor.execute("SELECT count(*) as cnt FROM users WHERE phone = ?;", (FOUNDER_PHONE,))
+        cursor.execute("SELECT count(*) as cnt FROM locations;")
         row = cursor.fetchone()
         if row and row["cnt"] > 0:
-            print("[Seed] Database already seeded. Resetting seed data...")
+            print("[Seed] Existing records detected. Resetting seed data...")
             cursor.execute("DELETE FROM order_events;")
             cursor.execute("DELETE FROM tracking_points;")
             cursor.execute("DELETE FROM deliveries;")
