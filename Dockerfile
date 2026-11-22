@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
 
 # Install dependencies
-RUN pip install --no-cache-dir fastapi uvicorn pydantic httpx cryptography
+RUN pip install --no-cache-dir fastapi uvicorn pydantic httpx cryptography pillow python-multipart
 
 # Copy backend source
 COPY kisan_backend/ /app/kisan_backend/

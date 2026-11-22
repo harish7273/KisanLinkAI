@@ -135,6 +135,7 @@ async def submit_kyc(req: KycSubmitRequest):
             "status": "success",
             "kyc_status": status_target,
             "gps_offset_meters": round(dist_km * 1000, 1),
+            "gps_offset_km": round(dist_km, 3),
             "is_location_verified": dist_km <= 0.5 and not req.is_mock_location,
             "flags": flags,
             "message": "KYC profile submitted successfully. Review in progress (SLA: 4 hours)."

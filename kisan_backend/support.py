@@ -141,6 +141,7 @@ def get_ticket_thread(ticket_id: str):
         messages = [dict(m) for m in cursor.fetchall()]
         t_dict = dict(ticket)
         t_dict["messages"] = messages
+        t_dict["ticket"] = dict(ticket)
         return t_dict
 
 class CreateTicketRequest(BaseModel):
@@ -193,12 +194,15 @@ def list_user_tickets(user_id: Optional[str] = None):
         return {"tickets": tickets, "total": len(tickets)}
 
 class SOSRequest(BaseModel):
-    user_id: str
-    user_role: str
+    user_id: Optional[str] = None
+    partner_id: Optional[str] = None
+    user_role: Optional[str] = "delivery_partner"
     latitude: float
     longitude: float
-    emergency_type: str = "HIGHWAY_BREAKDOWN"
-    details: Optional[str] = "Driver triggered emergency SOS"
+    emergency_type: Optional[str] = "HIGHWAY_BREAKDOWN"
+    details: Optional[str] = None
+    note: Optional[str] = None
+    order_id: Optional[str] = None
 
 @router.post("/sos")
 def trigger_emergency_sos(req: SOSRequest):
@@ -208,16 +212,24 @@ def trigger_emergency_sos(req: SOSRequest):
         tid = f"sos_{uuid.uuid4().hex[:10]}"
         t_num = f"SOS-{datetime.now(timezone.utc).strftime('%Y%m')}-{uuid.uuid4().hex[:4].upper()}"
         
-        desc = f"EMERGENCY SOS DISPATCH [{req.emergency_type}]. Location: Lat {req.latitude:.5f}, Lng {req.longitude:.5f}. Notes: {req.details}"
+        uid = req.user_id or req.partner_id or "user_unknown"
+        urole = req.user_role or "delivery_partner"
+        em_type = req.emergency_type or "HIGHWAY_BREAKDOWN"
+        note_str = req.details or req.note or "Driver triggered emergency SOS"
+        
+        desc = f"EMERGENCY SOS DISPATCH [{em_type}]. Location: Lat {req.latitude:.5f}, Lng {req.longitude:.5f}. Notes: {note_str}"
+        if req.order_id:
+            desc += f" (Order: {req.order_id})"
+
         cursor.execute("""
             INSERT INTO support_tickets (id, ticket_number, user_id, user_role, category, priority, status, subject, description, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'SOS', 'URGENT', 'OPEN', ?, ?, ?, ?);
-        """, (tid, t_num, req.user_id, req.user_role, f"EMERGENCY SOS - {req.emergency_type}", desc, now, now))
+        """, (tid, t_num, uid, urole, f"EMERGENCY SOS - {em_type}", desc, now, now))
         
         # Notify ops and support
         record_notification(cursor, "staff_ops", "staff", "CRITICAL SOS ALERT", f"Emergency reported at {req.latitude}, {req.longitude}", "emergency_sos")
         record_notification(cursor, "staff_support", "staff", "CRITICAL SOS ALERT", f"Emergency reported at {req.latitude}, {req.longitude}", "emergency_sos")
-        record_audit_log(cursor, "EMERGENCY_SOS_TRIGGERED", req.user_id, req.user_role, f"support_tickets/{tid}", desc)
+        record_audit_log(cursor, "EMERGENCY_SOS_TRIGGERED", uid, urole, f"support_tickets/{tid}", desc)
         
     return {
         "status": "SOS_DISPATCHED",

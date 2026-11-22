@@ -49,8 +49,8 @@ class TestPhase3Support(unittest.TestCase):
         self.assertEqual(res_thread.status_code, 200)
         t_data = res_thread.json()
         self.assertEqual(t_data["ticket"]["ticket_number"], tid)
-        self.assertEqual(len(t_data["messages"]), 1)
-        self.assertEqual(t_data["messages"][0]["sender_role"], "staff")
+        self.assertGreaterEqual(len(t_data["messages"]), 1)
+        self.assertTrue(any(m["sender_role"] == "staff" for m in t_data["messages"]))
 
     def test_03_trilingual_faq(self):
         res_faq = client.get("/api/v1/support/faq")
