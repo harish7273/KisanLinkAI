@@ -487,4 +487,22 @@ def init_db():
         except Exception:
             pass
 
+        try:
+            cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS trg_prevent_audit_update
+            BEFORE UPDATE ON audit_logs
+            BEGIN
+                SELECT RAISE(ABORT, 'IMMUTABLE_LOG: Audit logs cannot be modified');
+            END;
+            """)
+            cursor.execute("""
+            CREATE TRIGGER IF NOT EXISTS trg_prevent_audit_delete
+            BEFORE DELETE ON audit_logs
+            BEGIN
+                SELECT RAISE(ABORT, 'IMMUTABLE_LOG: Audit logs cannot be deleted');
+            END;
+            """)
+        except Exception:
+            pass
+
     print("[Database] Schema initialized successfully.")

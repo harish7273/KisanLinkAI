@@ -22,13 +22,20 @@ def seed_database():
             cursor.execute("DELETE FROM tracking_points;")
             cursor.execute("DELETE FROM deliveries;")
             cursor.execute("DELETE FROM wallet_transactions;")
+            cursor.execute("DELETE FROM ratings;")
+            cursor.execute("DELETE FROM wallet_transactions;")
             cursor.execute("DELETE FROM payout_requests;")
             cursor.execute("DELETE FROM wallets;")
             cursor.execute("DELETE FROM disputes;")
             cursor.execute("DELETE FROM support_messages;")
             cursor.execute("DELETE FROM support_tickets;")
             cursor.execute("DELETE FROM notifications;")
+            cursor.execute("DELETE FROM lots;")
             cursor.execute("DELETE FROM quality_scans;")
+            cursor.execute("DELETE FROM delivery_alerts;")
+            cursor.execute("DELETE FROM tracking_points;")
+            cursor.execute("DELETE FROM deliveries;")
+            cursor.execute("DELETE FROM order_events;")
             cursor.execute("DELETE FROM orders;")
             cursor.execute("DELETE FROM demands;")
             cursor.execute("DELETE FROM listings;")
@@ -41,6 +48,8 @@ def seed_database():
             cursor.execute("DELETE FROM crops;")
             cursor.execute("DELETE FROM locations;")
             cursor.execute("DELETE FROM platform_settings;")
+            cursor.execute("DROP TRIGGER IF EXISTS trg_prevent_audit_update;")
+            cursor.execute("DROP TRIGGER IF EXISTS trg_prevent_audit_delete;")
             cursor.execute("DELETE FROM audit_logs;")
 
         now = datetime.now(timezone.utc).isoformat()
@@ -328,12 +337,33 @@ def seed_database():
         print("[Seed] Inserted Platform Settings.")
 
         # 10. Chained Audit Log Genesis Block
-        gen_raw = f"GENESIS|SYSTEM_INIT|staff_founder|platform|{now}|KisanAI Enterprise Master Seed World Generated"
+        prev_h = "00000000000000000000000000000000"
+        action = "SYSTEM_INIT"
+        actor = "staff_founder"
+        target = "system"
+        det = "KisanAI Master Dataset Initialized"
+        gen_raw = f"{prev_h}|{action}|{actor}|{target}|{now}|{det}"
         gen_hash = hashlib.sha256(gen_raw.encode("utf-8")).hexdigest()
         cursor.execute("""
             INSERT INTO audit_logs (id, action, actor_id, actor_role, target_entity, details, prev_hash, curr_hash, timestamp)
-            VALUES (?, 'SYSTEM_INIT', 'staff_founder', 'founder', 'system', 'KisanAI Master Dataset Initialized', '00000000000000000000000000000000', ?, ?);
-        """, (f"aud_{uuid.uuid4().hex[:12]}", gen_hash, now))
+            VALUES (?, ?, ?, 'founder', ?, ?, ?, ?, ?);
+        """, (f"aud_{uuid.uuid4().hex[:12]}", action, actor, target, det, prev_h, gen_hash, now))
+
+        # Re-enable tamper prevention triggers
+        cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_prevent_audit_update
+        BEFORE UPDATE ON audit_logs
+        BEGIN
+            SELECT RAISE(ABORT, 'IMMUTABLE_LOG: Audit logs cannot be modified');
+        END;
+        """)
+        cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_prevent_audit_delete
+        BEFORE DELETE ON audit_logs
+        BEGIN
+            SELECT RAISE(ABORT, 'IMMUTABLE_LOG: Audit logs cannot be deleted');
+        END;
+        """)
 
     print("[Seed] Database seeding completed successfully.")
 

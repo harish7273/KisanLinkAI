@@ -22,6 +22,7 @@ from .support import router as support_router
 from .auth import router as auth_router, require_staff_auth, create_jwt
 from .quality import router as quality_router
 from .delivery_trust import router as delivery_trust_router
+from .integrity_engine import router as integrity_router
 
 app = FastAPI(
     title="KisanAI Unified Cloud API",
@@ -35,6 +36,7 @@ app.include_router(support_router)
 app.include_router(auth_router)
 app.include_router(quality_router)
 app.include_router(delivery_trust_router)
+app.include_router(integrity_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
