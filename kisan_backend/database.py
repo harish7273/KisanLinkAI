@@ -246,7 +246,7 @@ def init_db():
         );
         """)
 
-        # 14. Quality Scans
+        # 14. Quality Scans & Lots (Quality Passport & Traceability)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS quality_scans (
             id TEXT PRIMARY KEY,
@@ -259,7 +259,29 @@ def init_db():
             ripeness_percentage REAL NOT NULL DEFAULT 88.0,
             ai_confidence REAL NOT NULL DEFAULT 0.94,
             image_url TEXT,
+            photo_hash TEXT,
+            flags TEXT,
+            lot_id TEXT,
             status TEXT NOT NULL DEFAULT 'VERIFIED',
+            created_at TEXT NOT NULL
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS lots (
+            id TEXT PRIMARY KEY,
+            lot_number TEXT UNIQUE NOT NULL,
+            farmer_id TEXT NOT NULL REFERENCES users(id),
+            crop_id TEXT NOT NULL REFERENCES crops(id),
+            scan_id TEXT REFERENCES quality_scans(id),
+            grade TEXT NOT NULL DEFAULT 'Grade A',
+            quantity REAL NOT NULL,
+            unit TEXT NOT NULL DEFAULT 'kg',
+            harvest_date TEXT NOT NULL,
+            photo_hash TEXT NOT NULL,
+            qr_code_url TEXT NOT NULL,
+            signature TEXT NOT NULL,
+            is_verified INTEGER NOT NULL DEFAULT 1,
             created_at TEXT NOT NULL
         );
         """)
@@ -424,6 +446,18 @@ def init_db():
             pass
         try:
             cursor.execute("ALTER TABLE farmer_profiles ADD COLUMN upi_id TEXT;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE quality_scans ADD COLUMN photo_hash TEXT;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE quality_scans ADD COLUMN flags TEXT;")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE quality_scans ADD COLUMN lot_id TEXT;")
         except Exception:
             pass
 
