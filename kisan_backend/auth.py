@@ -81,7 +81,22 @@ def verify_jwt(token: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
 def require_staff_auth(
     authorization: Optional[str] = Header(None)
 ) -> Dict[str, Any]:
-    # In Demo Mode, if DEMO_OPEN=true, return founder demo principal
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1]
+        valid, payload = verify_jwt(token)
+        if not valid or not payload:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid, expired, or tampered authentication token."
+            )
+        if payload.get("role") != "staff":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: Staff credentials required."
+            )
+        return payload
+
+    # In Demo Mode, if DEMO_OPEN=true and no token provided, return founder demo principal
     if DEMO_OPEN and DATA_MODE == "sample":
         return {
             "user_id": "staff_founder",
@@ -91,27 +106,10 @@ def require_staff_auth(
             "principal": "demo_principal"
         }
         
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required. Please provide Bearer token."
-        )
-        
-    token = authorization.split(" ", 1)[1]
-    valid, payload = verify_jwt(token)
-    if not valid or not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid, expired, or tampered authentication token."
-        )
-        
-    if payload.get("role") != "staff":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access forbidden: Staff credentials required."
-        )
-        
-    return payload
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required. Please provide Bearer token."
+    )
 
 class StaffLoginRequest(BaseModel):
     phone: str

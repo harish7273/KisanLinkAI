@@ -88,7 +88,7 @@ class _BuyerRegistrationScreenState
         if (authError.code == 'invalid-email' && !isEmail) {
           credential = await FirebaseAuth.instance
               .createUserWithEmailAndPassword(
-            email: '$cleanUsername@vidhai.app',
+            email: '$cleanUsername@kisanai.app',
             password: password,
           );
         } else {

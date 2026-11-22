@@ -53,7 +53,7 @@ class _BuyerLoginScreenState
     }
 
     final String email = isEmail ? rawInput.toLowerCase() : '$cleanUsername@kisanai.app';
-    final String legacyEmail = isEmail ? rawInput.toLowerCase() : '$cleanUsername@vidhai.app';
+    final String legacyEmail = isEmail ? rawInput.toLowerCase() : '$cleanUsername@kisanai.app';
     final password = _passwordController.text;
 
     setState(() {

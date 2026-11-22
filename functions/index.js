@@ -10,7 +10,7 @@ const messaging = getMessaging();
 
 /*
  * ============================================================
- * Vidhai - Farmer New Order Push Notification
+ * KisanAI - Farmer New Order Push Notification
  * ============================================================
  *
  * Trigger:
@@ -49,7 +49,7 @@ exports.sendFarmerOrderNotification = onDocumentCreated(
         );
 
         console.log(
-            "NEW VIDHAI NOTIFICATION",
+            "NEW KISANAI NOTIFICATION",
         );
 
         console.log(
@@ -209,7 +209,7 @@ exports.sendFarmerOrderNotification = onDocumentCreated(
 
             notification: {
               channelId:
-              "vidhai_orders",
+              "kisanai_orders",
 
               sound: "default",
 
