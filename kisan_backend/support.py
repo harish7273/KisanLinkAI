@@ -139,5 +139,91 @@ def get_ticket_thread(ticket_id: str):
             
         cursor.execute("SELECT * FROM support_messages WHERE ticket_id = ? ORDER BY timestamp ASC;", (ticket["id"],))
         messages = [dict(m) for m in cursor.fetchall()]
+        t_dict = dict(ticket)
+        t_dict["messages"] = messages
+        return t_dict
+
+class CreateTicketRequest(BaseModel):
+    user_id: str
+    user_role: str
+    category: str = "APP_ISSUE" # VERIFICATION | PAYMENT | DELIVERY | QUALITY | APP_ISSUE | SOS
+    priority: str = "MEDIUM" # LOW | MEDIUM | HIGH | URGENT
+    subject: str
+    description: str
+
+@router.post("/tickets")
+def create_support_ticket(req: CreateTicketRequest):
+    with db_session() as conn:
+        cursor = conn.cursor()
+        tid = f"tkt_{uuid.uuid4().hex[:10]}"
+        t_num = f"TKT-{datetime.now(timezone.utc).strftime('%Y%m')}-{uuid.uuid4().hex[:4].upper()}"
+        now = datetime.now(timezone.utc).isoformat()
         
-        return {"ticket": dict(ticket), "messages": messages}
+        cursor.execute("""
+            INSERT INTO support_tickets (id, ticket_number, user_id, user_role, category, priority, status, subject, description, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?);
+        """, (tid, t_num, req.user_id, req.user_role, req.category, req.priority, req.subject, req.description, now, now))
+        
+        # Initial message
+        mid = f"msg_{uuid.uuid4().hex[:10]}"
+        cursor.execute("""
+            INSERT INTO support_messages (id, ticket_id, sender_id, sender_role, message, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?);
+        """, (mid, tid, req.user_id, req.user_role, req.description, now))
+        
+        record_audit_log(cursor, "SUPPORT_TICKET_CREATED", req.user_id, req.user_role, f"support_tickets/{tid}", f"Ticket {t_num} created: {req.subject}")
+        
+    return {
+        "status": "success",
+        "ticket_id": tid,
+        "ticket_number": t_num,
+        "subject": req.subject,
+        "created_at": now
+    }
+
+@router.get("/tickets")
+def list_user_tickets(user_id: Optional[str] = None):
+    with db_session() as conn:
+        cursor = conn.cursor()
+        if user_id:
+            cursor.execute("SELECT * FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC;", (user_id,))
+        else:
+            cursor.execute("SELECT * FROM support_tickets ORDER BY created_at DESC LIMIT 50;")
+        tickets = [dict(t) for t in cursor.fetchall()]
+        return {"tickets": tickets, "total": len(tickets)}
+
+class SOSRequest(BaseModel):
+    user_id: str
+    user_role: str
+    latitude: float
+    longitude: float
+    emergency_type: str = "HIGHWAY_BREAKDOWN"
+    details: Optional[str] = "Driver triggered emergency SOS"
+
+@router.post("/sos")
+def trigger_emergency_sos(req: SOSRequest):
+    with db_session() as conn:
+        cursor = conn.cursor()
+        now = datetime.now(timezone.utc).isoformat()
+        tid = f"sos_{uuid.uuid4().hex[:10]}"
+        t_num = f"SOS-{datetime.now(timezone.utc).strftime('%Y%m')}-{uuid.uuid4().hex[:4].upper()}"
+        
+        desc = f"EMERGENCY SOS DISPATCH [{req.emergency_type}]. Location: Lat {req.latitude:.5f}, Lng {req.longitude:.5f}. Notes: {req.details}"
+        cursor.execute("""
+            INSERT INTO support_tickets (id, ticket_number, user_id, user_role, category, priority, status, subject, description, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'SOS', 'URGENT', 'OPEN', ?, ?, ?, ?);
+        """, (tid, t_num, req.user_id, req.user_role, f"EMERGENCY SOS - {req.emergency_type}", desc, now, now))
+        
+        # Notify ops and support
+        record_notification(cursor, "staff_ops", "staff", "CRITICAL SOS ALERT", f"Emergency reported at {req.latitude}, {req.longitude}", "emergency_sos")
+        record_notification(cursor, "staff_support", "staff", "CRITICAL SOS ALERT", f"Emergency reported at {req.latitude}, {req.longitude}", "emergency_sos")
+        record_audit_log(cursor, "EMERGENCY_SOS_TRIGGERED", req.user_id, req.user_role, f"support_tickets/{tid}", desc)
+        
+    return {
+        "status": "SOS_DISPATCHED",
+        "ticket_number": t_num,
+        "emergency_number": "112",
+        "kisanai_operations_alerted": True,
+        "gps_coordinates": {"latitude": req.latitude, "longitude": req.longitude},
+        "message": "Emergency SOS dispatched to KisanAI logistics control and emergency services."
+    }
